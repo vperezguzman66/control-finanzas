@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control de Finanzas</title>
+  <link rel="stylesheet" href="finance-styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">💸 Finanzas personales</p>
+        <h1>Control de Finanzas</h1>
+        <p class="subtitle">Registra ingresos, gastos y suscripciones en un solo lugar, con datos guardados en SQLite.</p>
+      </div>
+      <div class="hero-card">
+        <label for="monthFilter">Mes activo</label>
+        <input id="monthFilter" type="month" />
+        <p class="hint">Cambia el mes para revisar tus movimientos con más calma que un domingo por la tarde.</p>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Resumen mensual</h2>
+          <p class="hint">Visión rápida del dinero que entra, sale y queda comprometido en suscripciones.</p>
+        </div>
+        <button id="refreshBtn" class="secondary" type="button">Actualizar</button>
+      </div>
+      <div id="stats" class="stats"></div>
+    </section>
+
+    <section class="grid-2">
+      <section class="panel">
+        <h2>Nuevo movimiento</h2>
+        <form id="transactionForm" class="form">
+          <div class="row">
+            <label>
+              Tipo
+              <select id="txKind" required>
+                <option value="expense">Gasto</option>
+                <option value="income">Ingreso</option>
+              </select>
+            </label>
+            <label>
+              Monto
+              <input id="txAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Categoría
+              <input id="txCategory" maxlength="80" placeholder="Alimentos, transporte, salario..." required />
+            </label>
+            <label>
+              Fecha
+              <input id="txDate" type="date" required />
+            </label>
+          </div>
+
+          <label>
+            Descripción
+            <input id="txDescription" maxlength="120" placeholder="Pago de nómina, compra del súper..." required />
+          </label>
+
+          <div class="row">
+            <label>
+              Método de pago
+              <input id="txPaymentMethod" maxlength="80" placeholder="Tarjeta, efectivo, transferencia..." />
+            </label>
+            <label class="checkbox">
+              <span>Es recurrente</span>
+              <input id="txRecurring" type="checkbox" />
+            </label>
+          </div>
+
+          <label>
+            Notas
+            <textarea id="txNotes" rows="3" maxlength="220" placeholder="Detalles extra, referencia, observaciones..."></textarea>
+          </label>
+
+          <button type="submit">Guardar movimiento</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Nueva suscripción</h2>
+        <form id="subscriptionForm" class="form">
+          <div class="row">
+            <label>
+              Nombre
+              <input id="subName" maxlength="120" placeholder="Netflix, gimnasio, cloud..." required />
+            </label>
+            <label>
+              Monto
+              <input id="subAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Categoría
+              <input id="subCategory" maxlength="80" placeholder="Entretenimiento, salud, trabajo..." required />
+            </label>
+            <label>
+              Ciclo
+              <select id="subCycle" required>
+                <option value="monthly">Mensual</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="annual">Anual</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Próximo cobro
+              <input id="subNextChargeDate" type="date" required />
+            </label>
+            <label>
+              Método de pago
+              <input id="subPaymentMethod" maxlength="80" placeholder="Tarjeta, PayPal, débito..." />
+            </label>
+          </div>
+
+          <label>
+            Notas
+            <textarea id="subNotes" rows="3" maxlength="220" placeholder="Renovación, plan, usuario compartido..."></textarea>
+          </label>
+
+          <button type="submit">Guardar suscripción</button>
+        </form>
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Movimientos del mes</h2>
+          <p class="hint">Ingresos y gastos del mes seleccionado, ordenados del más reciente al más antiguo.</p>
+        </div>
+      </div>
+      <div id="transactionsMeta" class="meta-line"></div>
+      <div id="transactionsList" class="cards"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Suscripciones</h2>
+          <p class="hint">Mira las suscripciones activas y lo que comprometen cada mes en promedio.</p>
+        </div>
+      </div>
+      <div id="subscriptionsMeta" class="meta-line"></div>
+      <div id="subscriptionsList" class="cards"></div>
+    </section>
+  </main>
+
+  <script src="finance-app.js"></script>
+</body>
+</html>

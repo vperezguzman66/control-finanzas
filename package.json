@@ -1,0 +1,14 @@
+{
+  "name": "control-finanzas",
+  "version": "1.0.0",
+  "description": "Aplicación web para controlar gastos, ingresos y suscripciones",
+  "main": "finance-server.js",
+  "scripts": {
+    "start": "node finance-server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  }
+}

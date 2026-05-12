@@ -47,7 +47,7 @@ function parseAmount(value) {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error("El importe debe ser un número mayor que cero");
   }
-  return Math.round(amount * 100) / 100;
+  return Math.round(amount);
 }
 
 function parseDate(value) {

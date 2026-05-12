@@ -1,6 +1,6 @@
 # Control de Finanzas 💸
 
-Aplicación web para gestionar tus **ingresos**, **gastos** y **suscripciones** en un solo panel, con persistencia local en SQLite.
+Aplicación web para gestionar tus **ingresos**, **gastos** y **suscripciones** en un solo panel, con persistencia local en SQLite y valores en **pesos chilenos (CLP)**.
 
 > Corta y clara: controla tu dinero sin pelearte con hojas de cálculo.
 

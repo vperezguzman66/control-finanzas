@@ -32,9 +32,11 @@ const refs = {
   subscriptionsList: document.getElementById("subscriptionsList"),
 };
 
-const currency = new Intl.NumberFormat("es-ES", {
+const currency = new Intl.NumberFormat("es-CL", {
   style: "currency",
-  currency: "EUR",
+  currency: "CLP",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
 function today() {

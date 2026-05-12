@@ -35,7 +35,7 @@
 
     <section class="grid-2">
       <section class="panel">
-        <h2>Nuevo movimiento</h2>
+        <h2 id="transactionFormTitle">Nuevo movimiento</h2>
         <form id="transactionForm" class="form">
           <div class="row">
             <label>
@@ -83,12 +83,15 @@
             <textarea id="txNotes" rows="3" maxlength="220" placeholder="Detalles extra, referencia, observaciones..."></textarea>
           </label>
 
-          <button type="submit">Guardar movimiento</button>
+          <div class="form-actions">
+            <button id="transactionSubmitBtn" type="submit">Guardar movimiento</button>
+            <button id="transactionCancelEditBtn" class="secondary hidden" type="button">Cancelar edición</button>
+          </div>
         </form>
       </section>
 
       <section class="panel">
-        <h2>Nueva suscripción</h2>
+        <h2 id="subscriptionFormTitle">Nueva suscripción</h2>
         <form id="subscriptionForm" class="form">
           <div class="row">
             <label>
@@ -132,7 +135,10 @@
             <textarea id="subNotes" rows="3" maxlength="220" placeholder="Renovación, plan, usuario compartido..."></textarea>
           </label>
 
-          <button type="submit">Guardar suscripción</button>
+          <div class="form-actions">
+            <button id="subscriptionSubmitBtn" type="submit">Guardar suscripción</button>
+            <button id="subscriptionCancelEditBtn" class="secondary hidden" type="button">Cancelar edición</button>
+          </div>
         </form>
       </section>
     </section>

@@ -3,6 +3,8 @@ const state = {
   dashboard: null,
   transactions: [],
   subscriptions: [],
+  transactionEditingId: null,
+  subscriptionEditingId: null,
 };
 
 const refs = {
@@ -18,6 +20,9 @@ const refs = {
   txPaymentMethod: document.getElementById("txPaymentMethod"),
   txRecurring: document.getElementById("txRecurring"),
   txNotes: document.getElementById("txNotes"),
+  transactionFormTitle: document.getElementById("transactionFormTitle"),
+  transactionSubmitBtn: document.getElementById("transactionSubmitBtn"),
+  transactionCancelEditBtn: document.getElementById("transactionCancelEditBtn"),
   subscriptionForm: document.getElementById("subscriptionForm"),
   subName: document.getElementById("subName"),
   subAmount: document.getElementById("subAmount"),
@@ -26,6 +31,9 @@ const refs = {
   subNextChargeDate: document.getElementById("subNextChargeDate"),
   subPaymentMethod: document.getElementById("subPaymentMethod"),
   subNotes: document.getElementById("subNotes"),
+  subscriptionFormTitle: document.getElementById("subscriptionFormTitle"),
+  subscriptionSubmitBtn: document.getElementById("subscriptionSubmitBtn"),
+  subscriptionCancelEditBtn: document.getElementById("subscriptionCancelEditBtn"),
   transactionsMeta: document.getElementById("transactionsMeta"),
   transactionsList: document.getElementById("transactionsList"),
   subscriptionsMeta: document.getElementById("subscriptionsMeta"),
@@ -215,10 +223,65 @@ function resetTransactionForm() {
   refs.txDate.value = today();
 }
 
+function setTransactionFormMode(isEditing) {
+  refs.transactionFormTitle.textContent = isEditing && state.transactionEditingId
+    ? `Editar movimiento #${state.transactionEditingId}`
+    : "Nuevo movimiento";
+  refs.transactionSubmitBtn.textContent = isEditing ? "Guardar cambios" : "Guardar movimiento";
+  refs.transactionCancelEditBtn.classList.toggle("hidden", !isEditing);
+}
+
+function cancelTransactionEdit() {
+  state.transactionEditingId = null;
+  setTransactionFormMode(false);
+  resetTransactionForm();
+}
+
+function startTransactionEdit(item) {
+  state.transactionEditingId = item.id;
+  refs.txKind.value = item.kind || "expense";
+  refs.txAmount.value = String(item.amount || "");
+  refs.txCategory.value = item.category || "";
+  refs.txDate.value = item.date || today();
+  refs.txDescription.value = item.description || "";
+  refs.txPaymentMethod.value = item.paymentMethod || "";
+  refs.txRecurring.checked = Boolean(item.recurring);
+  refs.txNotes.value = item.notes || "";
+  setTransactionFormMode(true);
+  refs.transactionForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  refs.txDescription.focus();
+}
+
 function resetSubscriptionForm() {
   refs.subscriptionForm.reset();
   refs.subCycle.value = "monthly";
   refs.subNextChargeDate.value = today();
+}
+
+function setSubscriptionFormMode(isEditing) {
+  refs.subscriptionFormTitle.textContent = isEditing ? "Editar suscripción" : "Nueva suscripción";
+  refs.subscriptionSubmitBtn.textContent = isEditing ? "Guardar cambios" : "Guardar suscripción";
+  refs.subscriptionCancelEditBtn.classList.toggle("hidden", !isEditing);
+}
+
+function cancelSubscriptionEdit() {
+  state.subscriptionEditingId = null;
+  setSubscriptionFormMode(false);
+  resetSubscriptionForm();
+}
+
+function startSubscriptionEdit(item) {
+  state.subscriptionEditingId = item.id;
+  refs.subName.value = item.name || "";
+  refs.subAmount.value = String(item.amount || "");
+  refs.subCategory.value = item.category || "";
+  refs.subCycle.value = item.billingCycle || "monthly";
+  refs.subNextChargeDate.value = item.nextChargeDate || today();
+  refs.subPaymentMethod.value = item.paymentMethod || "";
+  refs.subNotes.value = item.notes || "";
+  setSubscriptionFormMode(true);
+  refs.subscriptionForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  refs.subName.focus();
 }
 
 async function loadDashboard() {
@@ -384,6 +447,27 @@ async function createTransaction() {
   await refreshAll();
 }
 
+async function updateTransaction(id) {
+  const payload = {
+    kind: refs.txKind.value,
+    amount: refs.txAmount.value,
+    category: refs.txCategory.value.trim(),
+    date: refs.txDate.value,
+    description: refs.txDescription.value.trim(),
+    paymentMethod: refs.txPaymentMethod.value.trim(),
+    recurring: refs.txRecurring.checked,
+    notes: refs.txNotes.value.trim(),
+  };
+
+  await api(`/api/transactions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  cancelTransactionEdit();
+  await refreshAll();
+}
+
 async function createSubscription() {
   const payload = {
     name: refs.subName.value.trim(),
@@ -404,48 +488,24 @@ async function createSubscription() {
   await refreshAll();
 }
 
-function promptEditTransaction(item) {
-  const kind = window.prompt("Tipo (income/expense)", item.kind) || item.kind;
-  const category = window.prompt("Categoría", item.category) || item.category;
-  const description = window.prompt("Descripción", item.description) || item.description;
-  const amount = window.prompt("Importe", String(item.amount)) || String(item.amount);
-  const date = window.prompt("Fecha (AAAA-MM-DD)", item.date) || item.date;
-  const paymentMethod = window.prompt("Método de pago", item.paymentMethod || "") ?? item.paymentMethod ?? "";
-  const notes = window.prompt("Notas", item.notes || "") ?? item.notes ?? "";
-  const recurring = window.confirm("¿Marcar como recurrente?");
-
-  return {
-    kind: kind === "income" ? "income" : "expense",
-    category,
-    description,
-    amount,
-    date,
-    paymentMethod,
-    notes,
-    recurring,
+async function updateSubscription(id) {
+  const payload = {
+    name: refs.subName.value.trim(),
+    amount: refs.subAmount.value,
+    category: refs.subCategory.value.trim(),
+    billingCycle: refs.subCycle.value,
+    nextChargeDate: refs.subNextChargeDate.value,
+    paymentMethod: refs.subPaymentMethod.value.trim(),
+    notes: refs.subNotes.value.trim(),
   };
-}
 
-function promptEditSubscription(item) {
-  const name = window.prompt("Nombre", item.name) || item.name;
-  const category = window.prompt("Categoría", item.category) || item.category;
-  const amount = window.prompt("Importe", String(item.amount)) || String(item.amount);
-  const billingCycle = window.prompt("Ciclo (monthly/quarterly/annual)", item.billingCycle) || item.billingCycle;
-  const nextChargeDate = window.prompt("Próximo cobro (AAAA-MM-DD)", item.nextChargeDate) || item.nextChargeDate;
-  const paymentMethod = window.prompt("Método de pago", item.paymentMethod || "") ?? item.paymentMethod ?? "";
-  const notes = window.prompt("Notas", item.notes || "") ?? item.notes ?? "";
-  const status = window.confirm("¿Dejar activa? Aceptar = activa / Cancelar = pausada") ? "active" : "paused";
+  await api(`/api/subscriptions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 
-  return {
-    name,
-    category,
-    amount,
-    billingCycle: ["monthly", "quarterly", "annual"].includes(billingCycle) ? billingCycle : "monthly",
-    nextChargeDate,
-    paymentMethod,
-    notes,
-    status,
-  };
+  cancelSubscriptionEdit();
+  await refreshAll();
 }
 
 refs.monthFilter.addEventListener("change", async (event) => {
@@ -462,19 +522,37 @@ refs.refreshBtn.addEventListener("click", async () => {
 refs.transactionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
+    if (state.transactionEditingId) {
+      await updateTransaction(state.transactionEditingId);
+      return;
+    }
+
     await createTransaction();
   } catch (error) {
     alert(error.message);
   }
 });
 
+refs.transactionCancelEditBtn.addEventListener("click", () => {
+  cancelTransactionEdit();
+});
+
 refs.subscriptionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
+    if (state.subscriptionEditingId) {
+      await updateSubscription(state.subscriptionEditingId);
+      return;
+    }
+
     await createSubscription();
   } catch (error) {
     alert(error.message);
   }
+});
+
+refs.subscriptionCancelEditBtn.addEventListener("click", () => {
+  cancelSubscriptionEdit();
 });
 
 refs.transactionsList.addEventListener("click", async (event) => {
@@ -491,16 +569,12 @@ refs.transactionsList.addEventListener("click", async (event) => {
     if (action === "delete-transaction") {
       if (!window.confirm("¿Eliminar este movimiento?")) return;
       await api(`/api/transactions/${id}`, { method: "DELETE" });
+      if (state.transactionEditingId === id) cancelTransactionEdit();
       await refreshAll();
     }
 
     if (action === "edit-transaction") {
-      const payload = promptEditTransaction(item);
-      await api(`/api/transactions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      await refreshAll();
+      startTransactionEdit(item);
     }
   } catch (error) {
     alert(error.message);
@@ -521,6 +595,7 @@ refs.subscriptionsList.addEventListener("click", async (event) => {
     if (action === "delete-subscription") {
       if (!window.confirm("¿Eliminar esta suscripción?")) return;
       await api(`/api/subscriptions/${id}`, { method: "DELETE" });
+      if (state.subscriptionEditingId === id) cancelSubscriptionEdit();
       await refreshAll();
     }
 
@@ -530,12 +605,7 @@ refs.subscriptionsList.addEventListener("click", async (event) => {
     }
 
     if (action === "edit-subscription") {
-      const payload = promptEditSubscription(item);
-      await api(`/api/subscriptions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      await refreshAll();
+      startSubscriptionEdit(item);
     }
   } catch (error) {
     alert(error.message);
@@ -548,6 +618,8 @@ function boot() {
   refs.subNextChargeDate.value = today();
   resetTransactionForm();
   resetSubscriptionForm();
+  setTransactionFormMode(false);
+  setSubscriptionFormMode(false);
   refreshAll().catch((error) => {
     alert(error.message);
   });

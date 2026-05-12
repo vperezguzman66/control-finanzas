@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Control de Finanzas</title>
   <link rel="stylesheet" href="finance-styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
   <main class="container">
@@ -156,6 +157,24 @@
       </div>
       <div id="subscriptionsMeta" class="meta-line"></div>
       <div id="subscriptionsList" class="cards"></div>
+    </section>
+
+    <section class="grid-2">
+      <section class="panel">
+        <h2>Tendencia (últimos 12 meses)</h2>
+        <p class="hint">Visualiza ingresos y gastos a lo largo del tiempo.</p>
+        <div style="position: relative; height: 300px; margin-top: 1rem;">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Desglose de gastos</h2>
+        <p class="hint">Cómo se distribuyen tus gastos por categoría este mes.</p>
+        <div style="position: relative; height: 300px; margin-top: 1rem;">
+          <canvas id="expenseChart"></canvas>
+        </div>
+      </section>
     </section>
   </main>
 

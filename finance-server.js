@@ -400,6 +400,68 @@ app.delete("/api/subscriptions/:id", async (req, res) => {
   }
 });
 
+app.get("/api/chart/monthly-trend", async (_req, res) => {
+  try {
+    const months = [];
+    const data = { labels: [], income: [], expenses: [] };
+
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = date.toISOString().slice(0, 7);
+      months.push(month);
+    }
+
+    for (const month of months) {
+      const result = await get(
+        `
+          SELECT
+            COALESCE(SUM(CASE WHEN kind = 'income' THEN amount ELSE 0 END), 0) AS income,
+            COALESCE(SUM(CASE WHEN kind = 'expense' THEN amount ELSE 0 END), 0) AS expenses
+          FROM transactions
+          WHERE substr(date, 1, 7) = ?
+        `,
+        [month]
+      );
+
+      data.labels.push(month);
+      data.income.push(Number(result?.income || 0));
+      data.expenses.push(Number(result?.expenses || 0));
+    }
+
+    return res.json(data);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/chart/expense-breakdown", async (req, res) => {
+  try {
+    const month = asMonth(req.query.month);
+    const rows = await all(
+      `
+        SELECT
+          category,
+          COALESCE(SUM(amount), 0) AS total
+        FROM transactions
+        WHERE substr(date, 1, 7) = ? AND kind = 'expense'
+        GROUP BY category
+        ORDER BY total DESC
+      `,
+      [month]
+    );
+
+    const data = {
+      labels: rows.map((r) => r.category),
+      values: rows.map((r) => Number(r.total)),
+    };
+
+    return res.json(data);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "finance-index.html"));
 });

@@ -89,6 +89,14 @@ describe("Health Check", () => {
 });
 
 describe("Basic Auth", () => {
+  it("debe servir la pantalla pública de acceso sin credenciales", async () => {
+    const res = await rawFetch(`${baseURL}/`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("id=\"authForm\"");
+    expect(html).toContain("Inicia sesión");
+  });
+
   it("debe rechazar requests sin credenciales", async () => {
     const res = await rawFetch(`${baseURL}/api/dashboard?month=2026-05`);
     expect(res.status).toBe(401);

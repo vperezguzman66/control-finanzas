@@ -19,6 +19,13 @@
         <label for="monthFilter">Mes activo</label>
         <input id="monthFilter" type="month" />
         <p class="hint">Cambia el mes para revisar tus movimientos con más calma que un domingo por la tarde.</p>
+        <div class="session-card">
+          <div>
+            <strong>Acceso seguro</strong>
+            <p id="sessionStatus" class="hint">Inicia sesión para cargar tus datos.</p>
+          </div>
+          <button id="logoutBtn" class="secondary hidden" type="button">Cerrar sesión</button>
+        </div>
       </div>
     </header>
 
@@ -184,6 +191,28 @@
       </section>
     </section>
   </main>
+
+  <section id="authOverlay" class="auth-overlay" aria-hidden="false">
+    <form id="authForm" class="auth-card">
+      <p class="eyebrow">🔐 Acceso al panel</p>
+      <h2>Inicia sesión</h2>
+      <p class="subtitle">Usa tus credenciales para desbloquear la vista privada del control de finanzas.</p>
+
+      <label>
+        Usuario
+        <input id="authUser" autocomplete="username" maxlength="80" required />
+      </label>
+
+      <label>
+        Contraseña
+        <input id="authPassword" type="password" autocomplete="current-password" maxlength="120" required />
+      </label>
+
+      <p id="authError" class="auth-error hidden"></p>
+
+      <button type="submit">Entrar al panel</button>
+    </form>
+  </section>
 
   <section id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></section>
 

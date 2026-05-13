@@ -71,9 +71,10 @@ Variables de entorno disponibles en `.env`:
 
 Autenticación básica:
 
-- Si defines `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD`, la app pedirá credenciales para el frontend y para `/api`.
+- Si defines `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD`, la API queda protegida con Basic Auth.
 - `GET /health` permanece público para permitir chequeos de infraestructura.
-- La respuesta incorrecta devuelve `401` con `WWW-Authenticate` para que el navegador muestre el prompt nativo.
+- El frontend muestra una pantalla de acceso amigable; las credenciales se guardan en la sesión del navegador para llamar a la API.
+- La respuesta incorrecta devuelve `401` con `WWW-Authenticate` para compatibilidad con clientes externos.
 
 Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):
 

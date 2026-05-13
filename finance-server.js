@@ -77,6 +77,11 @@ if (allowedOrigins.length > 0) {
 app.use(compression());
 app.use(express.json({ limit: "100kb" }));
 
+const basicAuthMiddleware = createBasicAuthMiddleware({
+  username: process.env.BASIC_AUTH_USER,
+  password: process.env.BASIC_AUTH_PASSWORD,
+});
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 300,
@@ -86,7 +91,6 @@ const apiLimiter = rateLimit({
 });
 
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
-app.use("/api", apiLimiter);
 
 app.use((error, _req, res, next) => {
   if (error?.message === "Not allowed by CORS") {
@@ -105,14 +109,8 @@ app.get("/health", async (_req, res, next) => {
   }
 });
 
-app.use(
-  createBasicAuthMiddleware({
-    username: process.env.BASIC_AUTH_USER,
-    password: process.env.BASIC_AUTH_PASSWORD,
-  })
-);
-
 // Rutas de API
+app.use("/api", apiLimiter, basicAuthMiddleware);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/dashboard", dashboardRoutes);

@@ -10,6 +10,7 @@ const state = {
 const refs = {
   monthFilter: document.getElementById("monthFilter"),
   refreshBtn: document.getElementById("refreshBtn"),
+  logoutBtn: document.getElementById("logoutBtn"),
   stats: document.getElementById("stats"),
   transactionForm: document.getElementById("transactionForm"),
   txKind: document.getElementById("txKind"),
@@ -24,6 +25,12 @@ const refs = {
   transactionSubmitBtn: document.getElementById("transactionSubmitBtn"),
   transactionCancelEditBtn: document.getElementById("transactionCancelEditBtn"),
   exportTransactionsBtn: document.getElementById("exportTransactionsBtn"),
+  authOverlay: document.getElementById("authOverlay"),
+  authForm: document.getElementById("authForm"),
+  authUser: document.getElementById("authUser"),
+  authPassword: document.getElementById("authPassword"),
+  authError: document.getElementById("authError"),
+  sessionStatus: document.getElementById("sessionStatus"),
   subscriptionForm: document.getElementById("subscriptionForm"),
   subName: document.getElementById("subName"),
   subAmount: document.getElementById("subAmount"),
@@ -53,6 +60,64 @@ const currency = new Intl.NumberFormat("es-CL", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
+
+const authStorageKey = "control-finanzas.auth";
+
+function getStoredCredentials() {
+  try {
+    const raw = sessionStorage.getItem(authStorageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.username || !parsed?.password) return null;
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function setStoredCredentials(username, password) {
+  sessionStorage.setItem(authStorageKey, JSON.stringify({ username, password }));
+}
+
+function clearStoredCredentials() {
+  sessionStorage.removeItem(authStorageKey);
+}
+
+function hasStoredCredentials() {
+  return Boolean(getStoredCredentials());
+}
+
+function getAuthHeader() {
+  const credentials = getStoredCredentials();
+  if (!credentials) return null;
+
+  return `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`;
+}
+
+function syncAuthUi() {
+  const credentials = getStoredCredentials();
+  const authenticated = Boolean(credentials);
+
+  refs.authOverlay.classList.toggle("hidden", authenticated);
+  refs.authOverlay.setAttribute("aria-hidden", authenticated ? "true" : "false");
+  refs.logoutBtn.classList.toggle("hidden", !authenticated);
+  refs.sessionStatus.textContent = authenticated
+    ? `Sesión activa como ${credentials.username}`
+    : "Inicia sesión para cargar tus datos.";
+  if (!authenticated) {
+    refs.authPassword.value = "";
+  }
+}
+
+function showAuthError(message) {
+  refs.authError.textContent = message;
+  refs.authError.classList.remove("hidden");
+}
+
+function hideAuthError() {
+  refs.authError.textContent = "";
+  refs.authError.classList.add("hidden");
+}
 
 function today() {
   return localDateISO();
@@ -153,15 +218,26 @@ function monthlyEquivalent(subscription) {
 }
 
 async function api(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const authHeader = getAuthHeader();
+  if (authHeader) {
+    headers.set("Authorization", authHeader);
+  }
+  headers.set("Content-Type", "application/json");
+
   const response = await fetch(path, {
-    headers: {
-      "Content-Type": "application/json",
-    },
     ...options,
+    headers: Object.fromEntries(headers.entries()),
   });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      clearStoredCredentials();
+      syncAuthUi();
+      showAuthError(payload.error || "Credenciales inválidas");
+      throw new Error(payload.error || "Autenticación requerida");
+    }
     throw new Error(getApiErrorMessage(payload, "No se pudo completar la operación"));
   }
 
@@ -169,7 +245,13 @@ async function api(path, options = {}) {
 }
 
 async function downloadCsv(path, filename) {
-  const response = await fetch(path);
+  const headers = new Headers();
+  const authHeader = getAuthHeader();
+  if (authHeader) {
+    headers.set("Authorization", authHeader);
+  }
+
+  const response = await fetch(path, { headers });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -508,6 +590,33 @@ async function loadCharts() {
   await Promise.all([renderTrendChart(), renderExpenseChart()]);
 }
 
+function clearCharts() {
+  if (trendChartInstance) {
+    trendChartInstance.destroy();
+    trendChartInstance = null;
+  }
+
+  if (expenseChartInstance) {
+    expenseChartInstance.destroy();
+    expenseChartInstance = null;
+  }
+
+  const trendCtx = refs.trendCanvas.getContext("2d");
+  const expenseCtx = refs.expenseCanvas.getContext("2d");
+  trendCtx.clearRect(0, 0, refs.trendCanvas.width, refs.trendCanvas.height);
+  expenseCtx.clearRect(0, 0, refs.expenseCanvas.width, refs.expenseCanvas.height);
+}
+
+function clearAppData() {
+  state.dashboard = null;
+  state.transactions = [];
+  state.subscriptions = [];
+  renderStats();
+  renderTransactions();
+  renderSubscriptions();
+  clearCharts();
+}
+
 async function refreshAll() {
   await Promise.all([loadDashboard(), loadTransactions(), loadSubscriptions(), loadCharts()]);
 }
@@ -612,6 +721,40 @@ refs.refreshBtn.addEventListener("click", async () => {
   } catch (error) {
     notifyError(error);
   }
+});
+
+refs.authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  hideAuthError();
+
+  const username = refs.authUser.value.trim();
+  const password = refs.authPassword.value;
+
+  if (!username || !password) {
+    showAuthError("Ingresa usuario y contraseña.");
+    return;
+  }
+
+  setStoredCredentials(username, password);
+  syncAuthUi();
+
+  try {
+    await refreshAll();
+    notifySuccess("Acceso concedido", `Bienvenido, ${username}`);
+  } catch (error) {
+    clearStoredCredentials();
+    syncAuthUi();
+    clearAppData();
+    showAuthError(error.message);
+  }
+});
+
+refs.logoutBtn.addEventListener("click", () => {
+  clearStoredCredentials();
+  hideAuthError();
+  syncAuthUi();
+  clearAppData();
+  notifySuccess("Sesión cerrada");
 });
 
 refs.exportTransactionsBtn.addEventListener("click", async () => {
@@ -732,9 +875,19 @@ function boot() {
   resetSubscriptionForm();
   setTransactionFormMode(false);
   setSubscriptionFormMode(false);
-  refreshAll().catch((error) => {
-    notifyError(error);
-  });
+  syncAuthUi();
+
+  if (hasStoredCredentials()) {
+    refreshAll().catch((error) => {
+      clearStoredCredentials();
+      syncAuthUi();
+      clearAppData();
+      showAuthError(error.message);
+    });
+    return;
+  }
+
+  clearAppData();
 }
 
 boot();

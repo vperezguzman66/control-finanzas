@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 
 import database from "./src/database.js";
 import errorHandler from "./src/middleware/errorHandler.js";
+import { createBasicAuthMiddleware } from "./src/middleware/basicAuth.js";
 import transactionRoutes from "./src/routes/transactionRoutes.js";
 import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
 import dashboardRoutes from "./src/routes/dashboardRoutes.js";
@@ -103,6 +104,13 @@ app.get("/health", async (_req, res, next) => {
     next(error);
   }
 });
+
+app.use(
+  createBasicAuthMiddleware({
+    username: process.env.BASIC_AUTH_USER,
+    password: process.env.BASIC_AUTH_PASSWORD,
+  })
+);
 
 // Rutas de API
 app.use("/api/transactions", transactionRoutes);

@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..", "..");
 const baseURL = "http://localhost:3000";
+const rawFetch = globalThis.fetch.bind(globalThis);
+const basicAuthHeader = `Basic ${Buffer.from("admin:change-me").toString("base64")}`;
 
 let serverProcess;
 
@@ -32,8 +34,19 @@ beforeAll(async () => {
       env: {
         ...process.env,
         ALLOWED_ORIGINS: "http://allowed.local",
+        BASIC_AUTH_USER: "admin",
+        BASIC_AUTH_PASSWORD: "change-me",
       },
     });
+
+    globalThis.fetch = (input, init = {}) => {
+      const headers = new Headers(init.headers || {});
+      headers.set("Authorization", basicAuthHeader);
+      return rawFetch(input, {
+        ...init,
+        headers,
+      });
+    };
 
     serverProcess.on("error", reject);
 
@@ -47,11 +60,13 @@ beforeAll(async () => {
 afterAll(async () => {
   // Detener el servidor
   if (serverProcess) {
-    return new Promise((resolve) => {
+    await new Promise((resolve) => {
       serverProcess.kill();
       serverProcess.on("exit", resolve);
     });
   }
+
+  globalThis.fetch = rawFetch;
 });
 
 // ============================================================================
@@ -70,6 +85,16 @@ describe("Health Check", () => {
         dbPath: expect.any(String),
       })
     );
+  });
+});
+
+describe("Basic Auth", () => {
+  it("debe rechazar requests sin credenciales", async () => {
+    const res = await rawFetch(`${baseURL}/api/dashboard?month=2026-05`);
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
+    const data = await res.json();
+    expect(data).toEqual({ error: "Autenticación requerida" });
   });
 });
 

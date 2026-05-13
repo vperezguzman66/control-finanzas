@@ -59,6 +59,7 @@ Se incorporaron medidas base de hardening:
 - `x-powered-by` deshabilitado.
 - Límite de payload JSON (`100kb`).
 - Archivos estáticos servidos solo desde `public/`.
+- Autenticación básica HTTP opcional para la app y la API.
 
 Variables de entorno disponibles en `.env`:
 
@@ -66,6 +67,13 @@ Variables de entorno disponibles en `.env`:
 - `ALLOWED_ORIGINS` (lista separada por comas para habilitar CORS explícito)
 - `RATE_LIMIT_MAX` (máximo solicitudes por 15 min en `/api`)
 - `TRUST_PROXY` (usa `1` detrás de reverse proxy)
+- `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD` (habilitan Basic Auth cuando ambos están definidos)
+
+Autenticación básica:
+
+- Si defines `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD`, la app pedirá credenciales para el frontend y para `/api`.
+- `GET /health` permanece público para permitir chequeos de infraestructura.
+- La respuesta incorrecta devuelve `401` con `WWW-Authenticate` para que el navegador muestre el prompt nativo.
 
 Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):
 

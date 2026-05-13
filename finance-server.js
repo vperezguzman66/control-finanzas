@@ -56,29 +56,6 @@ function get(sql, params = []) {
   });
 }
 
-function asMonth(value) {
-  const fallback = new Date().toISOString().slice(0, 7);
-  const normalized = String(value || "").trim();
-  if (!/^\d{4}-\d{2}$/.test(normalized)) return fallback;
-  return normalized;
-}
-
-function parseAmount(value) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("El importe debe ser un número mayor que cero");
-  }
-  return Math.round(amount);
-}
-
-function parseDate(value) {
-  const normalized = String(value || "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    throw new Error("La fecha no es válida");
-  }
-  return normalized;
-}
-
 function billingMonths(cycle) {
   switch (cycle) {
     case "monthly":

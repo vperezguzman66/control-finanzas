@@ -16,8 +16,8 @@ function challenge(res) {
   return res.status(401).json({ error: "Autenticación requerida" });
 }
 
-export function createBasicAuthMiddleware({ username, password } = {}) {
-  const enabled = Boolean(username && password);
+export function createBasicAuthMiddleware({ username, password, pin } = {}) {
+  const enabled = Boolean(username && (password || pin));
 
   return function basicAuthMiddleware(req, res, next) {
     if (!enabled) {
@@ -44,7 +44,12 @@ export function createBasicAuthMiddleware({ username, password } = {}) {
     const providedUsername = decoded.slice(0, separatorIndex);
     const providedPassword = decoded.slice(separatorIndex + 1);
 
-    if (!safeCompare(providedUsername, username) || !safeCompare(providedPassword, password)) {
+    const acceptedSecrets = [password, pin].filter(Boolean);
+
+    const usernameMatches = safeCompare(providedUsername, username);
+    const secretMatches = acceptedSecrets.some((secret) => safeCompare(providedPassword, secret));
+
+    if (!usernameMatches || !secretMatches) {
       return challenge(res);
     }
 

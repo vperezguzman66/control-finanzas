@@ -68,12 +68,15 @@ Variables de entorno disponibles en `.env`:
 - `RATE_LIMIT_MAX` (máximo solicitudes por 15 min en `/api`)
 - `TRUST_PROXY` (usa `1` detrás de reverse proxy)
 - `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD` (habilitan Basic Auth cuando ambos están definidos)
+- `BASIC_AUTH_PIN` (PIN alternativo opcional para el login)
 
 Autenticación básica:
 
 - Si defines `BASIC_AUTH_USER` y `BASIC_AUTH_PASSWORD`, la API queda protegida con Basic Auth.
+- Si además defines `BASIC_AUTH_PIN`, el panel permite entrar con PIN como alternativa.
 - `GET /health` permanece público para permitir chequeos de infraestructura.
-- El frontend muestra una pantalla de acceso amigable; las credenciales se guardan en la sesión del navegador para llamar a la API.
+- El frontend muestra una pantalla de acceso amigable; el usuario puede elegir contraseña o PIN, recordar su usuario y mostrar/ocultar la contraseña.
+- Las credenciales se guardan en la sesión del navegador para llamar a la API.
 - La respuesta incorrecta devuelve `401` con `WWW-Authenticate` para compatibilidad con clientes externos.
 
 Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):

@@ -80,6 +80,7 @@ app.use(express.json({ limit: "100kb" }));
 const basicAuthMiddleware = createBasicAuthMiddleware({
   username: process.env.BASIC_AUTH_USER,
   password: process.env.BASIC_AUTH_PASSWORD,
+  pin: process.env.BASIC_AUTH_PIN,
 });
 
 const apiLimiter = rateLimit({

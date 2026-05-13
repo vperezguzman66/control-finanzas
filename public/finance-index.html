@@ -198,14 +198,36 @@
       <h2>Inicia sesión</h2>
       <p class="subtitle">Usa tus credenciales para desbloquear la vista privada del control de finanzas.</p>
 
+      <div class="auth-mode" role="tablist" aria-label="Modo de acceso">
+        <button id="authModePassword" type="button" class="auth-mode-btn active" data-auth-mode="password" aria-pressed="true">Contraseña</button>
+        <button id="authModePin" type="button" class="auth-mode-btn" data-auth-mode="pin" aria-pressed="false">PIN</button>
+      </div>
+
       <label>
         Usuario
         <input id="authUser" autocomplete="username" maxlength="80" required />
       </label>
 
-      <label>
-        Contraseña
-        <input id="authPassword" type="password" autocomplete="current-password" maxlength="120" required />
+      <div id="authPasswordGroup" class="auth-field-group">
+        <label>
+          Contraseña
+          <div class="auth-secret-row">
+            <input id="authPassword" type="password" autocomplete="current-password" maxlength="120" required />
+            <button id="togglePasswordBtn" class="secondary auth-icon-btn" type="button" aria-label="Mostrar contraseña">Mostrar</button>
+          </div>
+        </label>
+      </div>
+
+      <div id="authPinGroup" class="auth-field-group hidden">
+        <label>
+          PIN
+          <input id="authPin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="4-8 dígitos" />
+        </label>
+      </div>
+
+      <label class="auth-remember">
+        <span>Recordar usuario</span>
+        <input id="rememberUser" type="checkbox" />
       </label>
 
       <p id="authError" class="auth-error hidden"></p>

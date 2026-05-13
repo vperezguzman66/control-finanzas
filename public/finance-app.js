@@ -1,5 +1,6 @@
 const state = {
   month: currentLocalMonth(),
+  authMode: getStoredAuthMode(),
   dashboard: null,
   transactions: [],
   subscriptions: [],
@@ -27,8 +28,15 @@ const refs = {
   exportTransactionsBtn: document.getElementById("exportTransactionsBtn"),
   authOverlay: document.getElementById("authOverlay"),
   authForm: document.getElementById("authForm"),
+  authModePassword: document.getElementById("authModePassword"),
+  authModePin: document.getElementById("authModePin"),
   authUser: document.getElementById("authUser"),
   authPassword: document.getElementById("authPassword"),
+  authPasswordGroup: document.getElementById("authPasswordGroup"),
+  authPinGroup: document.getElementById("authPinGroup"),
+  authPin: document.getElementById("authPin"),
+  togglePasswordBtn: document.getElementById("togglePasswordBtn"),
+  rememberUser: document.getElementById("rememberUser"),
   authError: document.getElementById("authError"),
   sessionStatus: document.getElementById("sessionStatus"),
   subscriptionForm: document.getElementById("subscriptionForm"),
@@ -62,6 +70,36 @@ const currency = new Intl.NumberFormat("es-CL", {
 });
 
 const authStorageKey = "control-finanzas.auth";
+const rememberedUserKey = "control-finanzas.remembered-user";
+const authModeKey = "control-finanzas.auth-mode";
+
+function getStoredAuthMode() {
+  const stored = localStorage.getItem(authModeKey);
+  return stored === "pin" ? "pin" : "password";
+}
+
+function setStoredAuthMode(mode) {
+  localStorage.setItem(authModeKey, mode === "pin" ? "pin" : "password");
+}
+
+function getRememberedUsername() {
+  return localStorage.getItem(rememberedUserKey) || "";
+}
+
+function setRememberedUsername(username) {
+  if (username) {
+    localStorage.setItem(rememberedUserKey, username);
+    return;
+  }
+
+  localStorage.removeItem(rememberedUserKey);
+}
+
+function getStoredAuthModeLabel(mode) {
+  return mode === "pin" ? "PIN" : "contraseña";
+}
+
+let authPasswordVisible = false;
 
 function getStoredCredentials() {
   try {
@@ -75,8 +113,8 @@ function getStoredCredentials() {
   }
 }
 
-function setStoredCredentials(username, password) {
-  sessionStorage.setItem(authStorageKey, JSON.stringify({ username, password }));
+function setStoredCredentials(username, password, mode) {
+  sessionStorage.setItem(authStorageKey, JSON.stringify({ username, password, mode }));
 }
 
 function clearStoredCredentials() {
@@ -94,18 +132,54 @@ function getAuthHeader() {
   return `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`;
 }
 
+function setPasswordVisibility(visible) {
+  authPasswordVisible = visible;
+  refs.authPassword.type = visible ? "text" : "password";
+  refs.togglePasswordBtn.textContent = visible ? "Ocultar" : "Mostrar";
+  refs.togglePasswordBtn.setAttribute(
+    "aria-label",
+    visible ? "Ocultar contraseña" : "Mostrar contraseña"
+  );
+}
+
+function applyAuthMode(mode) {
+  state.authMode = mode === "pin" ? "pin" : "password";
+  setStoredAuthMode(state.authMode);
+
+  const isPin = state.authMode === "pin";
+  refs.authModePassword.classList.toggle("active", !isPin);
+  refs.authModePassword.setAttribute("aria-pressed", String(!isPin));
+  refs.authModePin.classList.toggle("active", isPin);
+  refs.authModePin.setAttribute("aria-pressed", String(isPin));
+
+  refs.authPasswordGroup.classList.toggle("hidden", isPin);
+  refs.authPinGroup.classList.toggle("hidden", !isPin);
+
+  refs.authPassword.required = !isPin;
+  refs.authPin.required = isPin;
+  refs.authPin.value = "";
+  if (isPin) {
+    setPasswordVisibility(false);
+  }
+}
+
 function syncAuthUi() {
   const credentials = getStoredCredentials();
   const authenticated = Boolean(credentials);
+  const rememberedUsername = getRememberedUsername();
 
   refs.authOverlay.classList.toggle("hidden", authenticated);
   refs.authOverlay.setAttribute("aria-hidden", authenticated ? "true" : "false");
   refs.logoutBtn.classList.toggle("hidden", !authenticated);
   refs.sessionStatus.textContent = authenticated
-    ? `Sesión activa como ${credentials.username}`
+    ? `Sesión activa como ${credentials.username} (${getStoredAuthModeLabel(credentials.mode)})`
     : "Inicia sesión para cargar tus datos.";
+  refs.authUser.value = authenticated ? refs.authUser.value : rememberedUsername;
+  refs.rememberUser.checked = Boolean(rememberedUsername);
   if (!authenticated) {
     refs.authPassword.value = "";
+    refs.authPin.value = "";
+    setPasswordVisibility(false);
   }
 }
 
@@ -723,19 +797,35 @@ refs.refreshBtn.addEventListener("click", async () => {
   }
 });
 
+refs.authModePassword.addEventListener("click", () => {
+  applyAuthMode("password");
+  hideAuthError();
+});
+
+refs.authModePin.addEventListener("click", () => {
+  applyAuthMode("pin");
+  hideAuthError();
+});
+
+refs.togglePasswordBtn.addEventListener("click", () => {
+  setPasswordVisibility(!authPasswordVisible);
+});
+
 refs.authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideAuthError();
 
   const username = refs.authUser.value.trim();
-  const password = refs.authPassword.value;
+  const remember = refs.rememberUser.checked;
+  const secret = state.authMode === "pin" ? refs.authPin.value.trim() : refs.authPassword.value;
 
-  if (!username || !password) {
-    showAuthError("Ingresa usuario y contraseña.");
+  if (!username || !secret) {
+    showAuthError(state.authMode === "pin" ? "Ingresa usuario y PIN." : "Ingresa usuario y contraseña.");
     return;
   }
 
-  setStoredCredentials(username, password);
+  setStoredCredentials(username, secret, state.authMode);
+  setRememberedUsername(remember ? username : "");
   syncAuthUi();
 
   try {
@@ -875,6 +965,7 @@ function boot() {
   resetSubscriptionForm();
   setTransactionFormMode(false);
   setSubscriptionFormMode(false);
+  applyAuthMode(state.authMode);
   syncAuthUi();
 
   if (hasStoredCredentials()) {

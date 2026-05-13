@@ -8,6 +8,7 @@ const projectRoot = path.join(__dirname, "..", "..");
 const baseURL = "http://localhost:3000";
 const rawFetch = globalThis.fetch.bind(globalThis);
 const basicAuthHeader = `Basic ${Buffer.from("admin:change-me").toString("base64")}`;
+const basicAuthPinHeader = `Basic ${Buffer.from("admin:1234").toString("base64")}`;
 
 let serverProcess;
 
@@ -36,6 +37,7 @@ beforeAll(async () => {
         ALLOWED_ORIGINS: "http://allowed.local",
         BASIC_AUTH_USER: "admin",
         BASIC_AUTH_PASSWORD: "change-me",
+        BASIC_AUTH_PIN: "1234",
       },
     });
 
@@ -95,6 +97,10 @@ describe("Basic Auth", () => {
     const html = await res.text();
     expect(html).toContain("id=\"authForm\"");
     expect(html).toContain("Inicia sesión");
+    expect(html).toContain("id=\"authModePin\"");
+    expect(html).toContain("id=\"authPinGroup\"");
+    expect(html).toContain("id=\"rememberUser\"");
+    expect(html).toContain("id=\"togglePasswordBtn\"");
   });
 
   it("debe rechazar requests sin credenciales", async () => {
@@ -103,6 +109,18 @@ describe("Basic Auth", () => {
     expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
     const data = await res.json();
     expect(data).toEqual({ error: "Autenticación requerida" });
+  });
+
+  it("debe permitir requests autenticadas con PIN", async () => {
+    const res = await rawFetch(`${baseURL}/api/subscriptions`, {
+      headers: {
+        Authorization: basicAuthPinHeader,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data.subscriptions)).toBe(true);
   });
 });
 

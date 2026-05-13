@@ -63,7 +63,13 @@ describe("Health Check", () => {
     const res = await fetch(`${baseURL}/health`);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toEqual({ ok: true });
+    expect(data.ok).toBe(true);
+    expect(data.db).toEqual(
+      expect.objectContaining({
+        ok: true,
+        dbPath: expect.any(String),
+      })
+    );
   });
 });
 
@@ -223,6 +229,17 @@ describe("Transacciones", () => {
       });
       expect(res.status).toBe(201);
       expect(await res.json()).toEqual({ ok: true });
+    });
+
+    it("debe exportar transacciones a CSV", async () => {
+      const res = await fetch(`${baseURL}/api/transactions/export?month=2026-05`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/csv");
+      expect(res.headers.get("content-disposition")).toContain("attachment");
+
+      const csv = await res.text();
+      expect(csv).toContain("id,kind,category,description,amount,date,paymentMethod,notes,recurring,createdAt");
+      expect(csv).toContain("2026-05");
     });
   });
 

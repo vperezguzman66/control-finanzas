@@ -1,4 +1,6 @@
 import TransactionService from "../services/transactionService.js";
+import TransactionRepository from "../repositories/transactionRepository.js";
+import { getCurrentMonth } from "../utils/helpers.js";
 
 /**
  * Controlador para las operaciones de transacciones
@@ -9,7 +11,7 @@ export class TransactionController {
    */
   static async getTransactions(req, res, next) {
     try {
-      const month = req.validatedQuery.month || new Date().toISOString().slice(0, 7);
+      const month = req.validatedQuery.month || getCurrentMonth();
       const transactions = await TransactionService.getTransactionsByMonth(month);
 
       return res.json({
@@ -57,6 +59,24 @@ export class TransactionController {
       const { id } = req.validatedParams;
       await TransactionService.deleteTransaction(id);
       return res.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/transactions/export
+   */
+  static async exportTransactions(req, res, next) {
+    try {
+      const month = req.validatedQuery.month || getCurrentMonth();
+      const rows = await TransactionRepository.getExportByMonth(month);
+      const csv = TransactionRepository.toCsv(rows);
+      const filename = `transactions-${month}.csv`;
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      return res.send(csv);
     } catch (error) {
       next(error);
     }

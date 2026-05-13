@@ -19,6 +19,7 @@ Al iniciar la app encontrarás:
 - ✅ Registro de gastos e ingresos (categoría, fecha, método de pago, notas, recurrente).
 - ✅ Gestión de suscripciones (mensual/trimestral/anual, próximo cobro, estado).
 - ✅ Cálculo automático del costo mensual equivalente de suscripciones.
+- ✅ Exportación de transacciones a CSV desde la API y la interfaz.
 - ✅ API REST para dashboard, transacciones y suscripciones.
 - ✅ Base de datos SQLite (`finance.db`).
 
@@ -74,9 +75,10 @@ Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):
 
 ## Endpoints principales
 
-- `GET /health`
+- `GET /health` devuelve estado general y chequeo de la base de datos.
 - `GET /api/dashboard?month=YYYY-MM`
 - `GET /api/transactions?month=YYYY-MM`
+- `GET /api/transactions/export?month=YYYY-MM`
 - `POST /api/transactions`
 - `PATCH /api/transactions/:id`
 - `DELETE /api/transactions/:id`
@@ -88,7 +90,7 @@ Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):
 
 ## Roadmap sugerido
 
-- [ ] Exportar movimientos a CSV/Excel.
+- [x] Exportar movimientos a CSV/Excel.
 - [ ] Gráficas mensuales (ingresos vs gastos).
 - [ ] Presupuestos por categoría.
 - [ ] Modo oscuro.

@@ -23,6 +23,7 @@ const refs = {
   transactionFormTitle: document.getElementById("transactionFormTitle"),
   transactionSubmitBtn: document.getElementById("transactionSubmitBtn"),
   transactionCancelEditBtn: document.getElementById("transactionCancelEditBtn"),
+  exportTransactionsBtn: document.getElementById("exportTransactionsBtn"),
   subscriptionForm: document.getElementById("subscriptionForm"),
   subName: document.getElementById("subName"),
   subAmount: document.getElementById("subAmount"),
@@ -165,6 +166,26 @@ async function api(path, options = {}) {
   }
 
   return response.json();
+}
+
+async function downloadCsv(path, filename) {
+  const response = await fetch(path);
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getApiErrorMessage(payload, "No se pudo exportar el CSV"));
+  }
+
+  const csv = await response.text();
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function setMonth(value) {
@@ -588,6 +609,16 @@ refs.refreshBtn.addEventListener("click", async () => {
   try {
     await refreshAll();
     notifySuccess("Datos actualizados");
+  } catch (error) {
+    notifyError(error);
+  }
+});
+
+refs.exportTransactionsBtn.addEventListener("click", async () => {
+  try {
+    const filename = `transactions-${state.month}.csv`;
+    await downloadCsv(`/api/transactions/export?month=${encodeURIComponent(state.month)}`, filename);
+    notifySuccess("CSV exportado", filename);
   } catch (error) {
     notifyError(error);
   }

@@ -50,45 +50,62 @@ class Database {
   /**
    * Inicializa las tablas de la base de datos
    */
-  static initializeTables() {
-    return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        db.run(`
-          CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            kind TEXT NOT NULL CHECK(kind IN ('income', 'expense')),
-            category TEXT NOT NULL,
-            description TEXT NOT NULL,
-            amount REAL NOT NULL,
-            date TEXT NOT NULL,
-            payment_method TEXT,
-            notes TEXT,
-            recurring INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL
-          )
-        `, (err) => {
-          if (err) reject(err);
-        });
+  static async initializeTables() {
+    await Database.run(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL CHECK(kind IN ('income', 'expense')),
+        category TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        payment_method TEXT,
+        notes TEXT,
+        recurring INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    `);
 
-        db.run(`
-          CREATE TABLE IF NOT EXISTS subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            category TEXT NOT NULL,
-            amount REAL NOT NULL,
-            billing_cycle TEXT NOT NULL CHECK(billing_cycle IN ('monthly', 'quarterly', 'annual')),
-            next_charge_date TEXT NOT NULL,
-            status TEXT NOT NULL CHECK(status IN ('active', 'paused')) DEFAULT 'active',
-            payment_method TEXT,
-            notes TEXT,
-            created_at TEXT NOT NULL
-          )
-        `, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-    });
+    await Database.run(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        billing_cycle TEXT NOT NULL CHECK(billing_cycle IN ('monthly', 'quarterly', 'annual')),
+        next_charge_date TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('active', 'paused')) DEFAULT 'active',
+        payment_method TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      )
+    `);
+
+    await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_date_kind
+      ON transactions(date, kind)
+    `);
+
+    await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_category
+      ON transactions(category)
+    `);
+
+    await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_status_next_charge_date
+      ON subscriptions(status, next_charge_date)
+    `);
+  }
+
+  /**
+   * Verifica que la base de datos responda correctamente
+   */
+  static async healthCheck() {
+    const row = await Database.get("SELECT 1 AS ok");
+    return {
+      ok: row?.ok === 1,
+      dbPath,
+    };
   }
 }
 
@@ -96,5 +113,6 @@ class Database {
 export const run = Database.run;
 export const all = Database.all;
 export const get = Database.get;
+export const healthCheck = Database.healthCheck;
 
 export default Database;

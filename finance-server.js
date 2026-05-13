@@ -95,8 +95,13 @@ app.use((error, _req, res, next) => {
 });
 
 // Health check
-app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+app.get("/health", async (_req, res, next) => {
+  try {
+    const dbHealth = await database.healthCheck();
+    res.json({ ok: true, db: dbHealth });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Rutas de API

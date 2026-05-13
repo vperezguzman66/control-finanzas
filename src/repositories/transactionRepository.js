@@ -4,6 +4,15 @@ import { run, all, get } from "../database.js";
  * Repositorio para operaciones CRUD de transacciones
  */
 export class TransactionRepository {
+  static escapeCsvValue(value) {
+    if (value === null || value === undefined) return "";
+    const text = String(value);
+    if (/[,"\n\r]/.test(text)) {
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+    return text;
+  }
+
   /**
    * Obtiene transacciones de un mes
    */
@@ -177,6 +186,71 @@ export class TransactionRepository {
     });
 
     return data;
+  }
+
+  /**
+   * Obtiene transacciones listas para exportación CSV
+   */
+  static async getExportByMonth(month) {
+    return all(
+      `
+        SELECT
+          id,
+          kind,
+          category,
+          description,
+          amount,
+          date,
+          payment_method AS paymentMethod,
+          notes,
+          recurring,
+          created_at AS createdAt
+        FROM transactions
+        WHERE substr(date, 1, 7) = ?
+        ORDER BY date DESC, id DESC
+      `,
+      [month]
+    );
+  }
+
+  /**
+   * Convierte transacciones a CSV
+   */
+  static toCsv(rows) {
+    const headers = [
+      "id",
+      "kind",
+      "category",
+      "description",
+      "amount",
+      "date",
+      "paymentMethod",
+      "notes",
+      "recurring",
+      "createdAt",
+    ];
+
+    const csvRows = [headers.join(",")];
+    rows.forEach((row) => {
+      csvRows.push(
+        [
+          row.id,
+          row.kind,
+          row.category,
+          row.description,
+          row.amount,
+          row.date,
+          row.paymentMethod,
+          row.notes,
+          row.recurring ? 1 : 0,
+          row.createdAt,
+        ]
+          .map((value) => TransactionRepository.escapeCsvValue(value))
+          .join(",")
+      );
+    });
+
+    return csvRows.join("\n");
   }
 }
 

@@ -16,6 +16,12 @@ const router = express.Router();
 router.get("/", validateTransactionQuery, TransactionController.getTransactions);
 
 /**
+ * GET /api/transactions/export
+ * Exporta transacciones del mes en CSV
+ */
+router.get("/export", validateTransactionQuery, TransactionController.exportTransactions);
+
+/**
  * POST /api/transactions
  * Crea una nueva transacción
  */

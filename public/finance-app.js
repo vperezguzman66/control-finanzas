@@ -1,5 +1,5 @@
 const state = {
-  month: new Date().toISOString().slice(0, 7),
+  month: currentLocalMonth(),
   dashboard: null,
   transactions: [],
   subscriptions: [],
@@ -40,6 +40,7 @@ const refs = {
   subscriptionsList: document.getElementById("subscriptionsList"),
   trendCanvas: document.getElementById("trendChart"),
   expenseCanvas: document.getElementById("expenseChart"),
+  toastContainer: document.getElementById("toastContainer"),
 };
 
 let trendChartInstance = null;
@@ -53,7 +54,71 @@ const currency = new Intl.NumberFormat("es-CL", {
 });
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateISO();
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function localDateISO(date = new Date()) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function currentLocalMonth(date = new Date()) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
+}
+
+function getApiErrorMessage(payload, fallback) {
+  if (Array.isArray(payload?.details) && payload.details.length > 0) {
+    const firstMessage = payload.details.find((item) => item?.message)?.message;
+    if (firstMessage) return firstMessage;
+  }
+  return payload?.error || fallback;
+}
+
+function showToast({
+  title,
+  message = "",
+  type = "success",
+  duration = 3500,
+}) {
+  if (!refs.toastContainer) return;
+
+  const toast = document.createElement("article");
+  toast.className = `toast ${type}`;
+  toast.setAttribute("role", "status");
+
+  const titleElement = document.createElement("strong");
+  titleElement.className = "toast-title";
+  titleElement.textContent = title;
+  toast.appendChild(titleElement);
+
+  if (message) {
+    const messageElement = document.createElement("span");
+    messageElement.className = "toast-message";
+    messageElement.textContent = message;
+    toast.appendChild(messageElement);
+  }
+
+  refs.toastContainer.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.remove();
+  }, duration);
+}
+
+function notifySuccess(title, message = "") {
+  showToast({ title, message, type: "success" });
+}
+
+function notifyError(error, fallback = "No se pudo completar la operación") {
+  showToast({
+    title: "Algo salió mal",
+    message: error?.message || fallback,
+    type: "error",
+    duration: 5000,
+  });
 }
 
 function formatCurrency(value) {
@@ -96,7 +161,7 @@ async function api(path, options = {}) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || "No se pudo completar la operación");
+    throw new Error(getApiErrorMessage(payload, "No se pudo completar la operación"));
   }
 
   return response.json();
@@ -511,12 +576,21 @@ async function updateSubscription(id) {
 refs.monthFilter.addEventListener("change", async (event) => {
   const value = event.target.value;
   if (!value) return;
-  setMonth(value);
-  await refreshAll();
+  try {
+    setMonth(value);
+    await refreshAll();
+  } catch (error) {
+    notifyError(error);
+  }
 });
 
 refs.refreshBtn.addEventListener("click", async () => {
-  await refreshAll();
+  try {
+    await refreshAll();
+    notifySuccess("Datos actualizados");
+  } catch (error) {
+    notifyError(error);
+  }
 });
 
 refs.transactionForm.addEventListener("submit", async (event) => {
@@ -524,12 +598,14 @@ refs.transactionForm.addEventListener("submit", async (event) => {
   try {
     if (state.transactionEditingId) {
       await updateTransaction(state.transactionEditingId);
+      notifySuccess("Movimiento actualizado");
       return;
     }
 
     await createTransaction();
+    notifySuccess("Movimiento guardado");
   } catch (error) {
-    alert(error.message);
+    notifyError(error);
   }
 });
 
@@ -542,12 +618,14 @@ refs.subscriptionForm.addEventListener("submit", async (event) => {
   try {
     if (state.subscriptionEditingId) {
       await updateSubscription(state.subscriptionEditingId);
+      notifySuccess("Suscripción actualizada");
       return;
     }
 
     await createSubscription();
+    notifySuccess("Suscripción guardada");
   } catch (error) {
-    alert(error.message);
+    notifyError(error);
   }
 });
 
@@ -571,13 +649,14 @@ refs.transactionsList.addEventListener("click", async (event) => {
       await api(`/api/transactions/${id}`, { method: "DELETE" });
       if (state.transactionEditingId === id) cancelTransactionEdit();
       await refreshAll();
+      notifySuccess("Movimiento eliminado");
     }
 
     if (action === "edit-transaction") {
       startTransactionEdit(item);
     }
   } catch (error) {
-    alert(error.message);
+    notifyError(error);
   }
 });
 
@@ -597,18 +676,20 @@ refs.subscriptionsList.addEventListener("click", async (event) => {
       await api(`/api/subscriptions/${id}`, { method: "DELETE" });
       if (state.subscriptionEditingId === id) cancelSubscriptionEdit();
       await refreshAll();
+      notifySuccess("Suscripción eliminada");
     }
 
     if (action === "toggle-subscription") {
       await api(`/api/subscriptions/${id}/toggle`, { method: "PATCH" });
       await refreshAll();
+      notifySuccess("Estado de suscripción actualizado");
     }
 
     if (action === "edit-subscription") {
       startSubscriptionEdit(item);
     }
   } catch (error) {
-    alert(error.message);
+    notifyError(error);
   }
 });
 
@@ -621,7 +702,7 @@ function boot() {
   setTransactionFormMode(false);
   setSubscriptionFormMode(false);
   refreshAll().catch((error) => {
-    alert(error.message);
+    notifyError(error);
   });
 }
 

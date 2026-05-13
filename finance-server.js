@@ -64,7 +64,7 @@ if (allowedOrigins.length > 0) {
       origin(origin, callback) {
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(null, false);
+        return callback(new Error("Not allowed by CORS"));
       },
       methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       credentials: true,

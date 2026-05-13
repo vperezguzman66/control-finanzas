@@ -29,6 +29,10 @@ beforeAll(async () => {
     serverProcess = spawn("node", ["finance-server.js"], {
       cwd: projectRoot,
       stdio: "pipe",
+      env: {
+        ...process.env,
+        ALLOWED_ORIGINS: "http://allowed.local",
+      },
     });
 
     serverProcess.on("error", reject);
@@ -671,5 +675,39 @@ describe("Error Handling", () => {
   it("debe retornar 404 para ruta no existente", async () => {
     const res = await fetch(`${baseURL}/api/nonexistent`);
     expect([404, 200]).toContain(res.status); // Puede ser 404 o redirigir (configuración)
+  });
+});
+
+describe("CORS", () => {
+  it("debe permitir request sin Origin", async () => {
+    const res = await fetch(`${baseURL}/api/dashboard?month=2026-05`);
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveProperty("month");
+  });
+
+  it("debe rechazar Origin no permitido con 403", async () => {
+    const res = await fetch(`${baseURL}/api/dashboard?month=2026-05`, {
+      headers: {
+        Origin: "http://evil.local",
+      },
+    });
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data).toEqual({ error: "Origen no permitido" });
+  });
+
+  it("debe permitir Origin configurado y devolver cabecera CORS", async () => {
+    const allowedOrigin = "http://allowed.local";
+    const res = await fetch(`${baseURL}/api/dashboard?month=2026-05`, {
+      headers: {
+        Origin: allowedOrigin,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("access-control-allow-origin")).toBe(allowedOrigin);
   });
 });

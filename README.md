@@ -66,6 +66,12 @@ Variables de entorno disponibles en `.env`:
 - `RATE_LIMIT_MAX` (máximo solicitudes por 15 min en `/api`)
 - `TRUST_PROXY` (usa `1` detrás de reverse proxy)
 
+Comportamiento CORS (cuando `ALLOWED_ORIGINS` está definido):
+
+- Requests **sin** header `Origin` (ej. cURL/server-to-server): permitidas.
+- Requests con `Origin` permitido: permitidas y con header `Access-Control-Allow-Origin`.
+- Requests con `Origin` no permitido: rechazadas con `403` y `{ "error": "Origen no permitido" }`.
+
 ## Endpoints principales
 
 - `GET /health`

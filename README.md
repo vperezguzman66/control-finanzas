@@ -48,6 +48,24 @@ Al iniciar la app encontrarás:
 
 La información se guarda en `finance.db` dentro del proyecto.
 
+## Seguridad (PR1)
+
+Se incorporaron medidas base de hardening:
+
+- `helmet` para cabeceras HTTP seguras y política CSP.
+- `compression` para respuestas comprimidas.
+- `express-rate-limit` aplicado a rutas `/api`.
+- `x-powered-by` deshabilitado.
+- Límite de payload JSON (`100kb`).
+- Archivos estáticos servidos solo desde `public/`.
+
+Variables de entorno disponibles en `.env`:
+
+- `PORT` (por defecto `3000`)
+- `ALLOWED_ORIGINS` (lista separada por comas para habilitar CORS explícito)
+- `RATE_LIMIT_MAX` (máximo solicitudes por 15 min en `/api`)
+- `TRUST_PROXY` (usa `1` detrás de reverse proxy)
+
 ## Endpoints principales
 
 - `GET /health`

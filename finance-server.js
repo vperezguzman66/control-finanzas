@@ -1,5 +1,9 @@
 const express = require("express");
 const path = require("path");
+const helmet = require("helmet");
+const cors = require("cors");
+const compression = require("compression");
+const rateLimit = require("express-rate-limit");
 const sqlite3 = require("sqlite3").verbose();
 require("dotenv").config();
 
@@ -77,8 +81,74 @@ function addMonths(dateValue, months) {
   return date.toISOString().slice(0, 10);
 }
 
-app.use(express.json());
-app.use(express.static(__dirname, { index: false }));
+const allowedOrigins = String(process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+const trustProxy = Number(process.env.TRUST_PROXY || 0);
+const rateLimitMax = Number(process.env.RATE_LIMIT_MAX || 300);
+
+if (Number.isInteger(trustProxy) && trustProxy >= 0) {
+  app.set("trust proxy", trustProxy);
+}
+
+app.disable("x-powered-by");
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+if (allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(null, false);
+      },
+      methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      credentials: true,
+      maxAge: 86400,
+    })
+  );
+}
+
+app.use(compression());
+app.use(express.json({ limit: "100kb" }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes. Intenta nuevamente en unos minutos." },
+});
+
+app.use(express.static(path.join(__dirname, "public"), { index: false }));
+app.use("/api", apiLimiter);
+
+app.use((error, _req, res, next) => {
+  if (error?.message === "Not allowed by CORS") {
+    return res.status(403).json({ error: "Origen no permitido" });
+  }
+  return next(error);
+});
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -463,11 +533,11 @@ app.get("/api/chart/expense-breakdown", async (req, res) => {
 });
 
 app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "finance-index.html"));
+  res.sendFile(path.join(__dirname, "public", "finance-index.html"));
 });
 
 app.get("*", (_req, res) => {
-  res.sendFile(path.join(__dirname, "finance-index.html"));
+  res.sendFile(path.join(__dirname, "public", "finance-index.html"));
 });
 
 app.listen(port, () => {

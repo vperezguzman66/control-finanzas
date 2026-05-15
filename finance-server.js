@@ -117,6 +117,10 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chart", chartRoutes);
 
+app.use("/api", (_req, res) => {
+  return res.status(404).json({ error: "Ruta no encontrada" });
+});
+
 // Servir aplicación frontend
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "finance-index.html"));

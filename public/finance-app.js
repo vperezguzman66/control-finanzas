@@ -69,9 +69,9 @@ const currency = new Intl.NumberFormat("es-CL", {
   maximumFractionDigits: 0,
 });
 
-const authStorageKey = "control-finanzas.auth";
 const rememberedUserKey = "control-finanzas.remembered-user";
 const authModeKey = "control-finanzas.auth-mode";
+let runtimeCredentials = null;
 
 function getStoredAuthMode() {
   const stored = localStorage.getItem(authModeKey);
@@ -102,23 +102,15 @@ function getStoredAuthModeLabel(mode) {
 let authPasswordVisible = false;
 
 function getStoredCredentials() {
-  try {
-    const raw = sessionStorage.getItem(authStorageKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.username || !parsed?.password) return null;
-    return parsed;
-  } catch (_error) {
-    return null;
-  }
+  return runtimeCredentials;
 }
 
 function setStoredCredentials(username, password, mode) {
-  sessionStorage.setItem(authStorageKey, JSON.stringify({ username, password, mode }));
+  runtimeCredentials = { username, password, mode };
 }
 
 function clearStoredCredentials() {
-  sessionStorage.removeItem(authStorageKey);
+  runtimeCredentials = null;
 }
 
 function hasStoredCredentials() {
@@ -545,6 +537,10 @@ async function loadSubscriptions() {
 }
 
 async function renderTrendChart() {
+  if (typeof Chart === "undefined") {
+    throw new Error("No se pudo cargar el motor de gráficos");
+  }
+
   const data = await api("/api/chart/monthly-trend");
 
   const ctx = refs.trendCanvas.getContext("2d");
@@ -599,6 +595,10 @@ async function renderTrendChart() {
 }
 
 async function renderExpenseChart() {
+  if (typeof Chart === "undefined") {
+    throw new Error("No se pudo cargar el motor de gráficos");
+  }
+
   const data = await api(`/api/chart/expense-breakdown?month=${encodeURIComponent(state.month)}`);
 
   const ctx = refs.expenseCanvas.getContext("2d");
@@ -661,7 +661,17 @@ async function renderExpenseChart() {
 }
 
 async function loadCharts() {
-  await Promise.all([renderTrendChart(), renderExpenseChart()]);
+  try {
+    await Promise.all([renderTrendChart(), renderExpenseChart()]);
+  } catch (error) {
+    clearCharts();
+    showToast({
+      title: "Gráficas no disponibles",
+      message: error?.message || "No se pudieron cargar las gráficas por ahora.",
+      type: "error",
+      duration: 5000,
+    });
+  }
 }
 
 function clearCharts() {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError } from "../utils/errors.js";
+import { formatZodError } from "../utils/validation.js";
 
 /**
  * Middleware centralizado de manejo de errores
@@ -7,22 +8,7 @@ import { AppError } from "../utils/errors.js";
 function errorHandler(error, req, res, next) {
   // Manejo de errores de validación Zod
   if (error instanceof z.ZodError) {
-    const flattened = error.flatten();
-    const details = [];
-    
-    // Procesar errores de campos
-    Object.entries(flattened.fieldErrors || {}).forEach(([field, messages]) => {
-      if (Array.isArray(messages)) {
-        messages.forEach((message) => {
-          details.push({ field, message });
-        });
-      }
-    });
-    
-    return res.status(400).json({
-      error: "Validación fallida",
-      details: details.length > 0 ? details : [{ field: "root", message: error.message }],
-    });
+    return res.status(400).json(formatZodError(error, "Validación fallida"));
   }
 
   // Manejo de AppError

@@ -303,6 +303,7 @@ async function api(path, options = {}) {
 
   const response = await fetch(path, {
     ...options,
+    cache: "no-store",
     headers: Object.fromEntries(headers.entries()),
   });
 
@@ -334,7 +335,10 @@ async function downloadCsv(path, filename) {
     headers.set("Authorization", authHeader);
   }
 
-  const response = await fetch(path, { headers });
+  const response = await fetch(path, {
+    headers,
+    cache: "no-store",
+  });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));

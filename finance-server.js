@@ -77,6 +77,13 @@ if (allowedOrigins.length > 0) {
 app.use(compression());
 app.use(express.json({ limit: "100kb" }));
 
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 const basicAuthMiddleware = createBasicAuthMiddleware({
   username: process.env.BASIC_AUTH_USER,
   password: process.env.BASIC_AUTH_PASSWORD,

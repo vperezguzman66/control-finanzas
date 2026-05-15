@@ -171,8 +171,13 @@ function syncAuthUi() {
   const authenticated = Boolean(credentials);
   const rememberedUsername = getRememberedUsername();
 
+  if (authenticated && refs.authOverlay.contains(document.activeElement)) {
+    refs.monthFilter?.focus();
+  }
+
   refs.authOverlay.classList.toggle("hidden", authenticated);
   refs.authOverlay.setAttribute("aria-hidden", authenticated ? "true" : "false");
+  refs.authOverlay.inert = authenticated;
   refs.logoutBtn.classList.toggle("hidden", !authenticated);
   refs.sessionStatus.textContent = authenticated
     ? `Sesión activa como ${credentials.username} (${getStoredAuthModeLabel(credentials.mode)})`
@@ -183,6 +188,7 @@ function syncAuthUi() {
     refs.authPassword.value = "";
     refs.authPin.value = "";
     setPasswordVisibility(false);
+    refs.authUser.focus();
   }
 }
 

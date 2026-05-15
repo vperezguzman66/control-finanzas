@@ -1,3 +1,6 @@
+const rememberedUserKey = "control-finanzas.remembered-user";
+const authModeKey = "control-finanzas.auth-mode";
+
 const state = {
   month: currentLocalMonth(),
   authMode: getStoredAuthMode(),
@@ -69,8 +72,6 @@ const currency = new Intl.NumberFormat("es-CL", {
   maximumFractionDigits: 0,
 });
 
-const rememberedUserKey = "control-finanzas.remembered-user";
-const authModeKey = "control-finanzas.auth-mode";
 let runtimeCredentials = null;
 
 function getStoredAuthMode() {

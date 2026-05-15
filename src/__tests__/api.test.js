@@ -367,6 +367,24 @@ describe("Transacciones", () => {
       expect(res.status).toBe(400);
       expect(await res.json()).toEqual({ error: "ID inválido" });
     });
+
+    it("debe retornar 404 si la transacción no existe", async () => {
+      const res = await fetch(`${baseURL}/api/transactions/999999999`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "income",
+          amount: 100,
+          category: "Test",
+          description: "Test",
+          date: "2026-05-13",
+        }),
+      });
+
+      expect(res.status).toBe(404);
+      const data = await res.json();
+      expect(data.error).toBe("Movimiento no encontrado");
+    });
   });
 
   describe("DELETE /api/transactions/:id", () => {
@@ -579,6 +597,24 @@ describe("Suscripciones", () => {
       expect(res.status).toBe(400);
       expect(await res.json()).toEqual({ error: "ID inválido" });
     });
+
+    it("debe retornar 404 si la suscripción no existe", async () => {
+      const res = await fetch(`${baseURL}/api/subscriptions/999999999`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Test",
+          amount: 10,
+          category: "Test",
+          billingCycle: "monthly",
+          nextChargeDate: "2026-06-13",
+        }),
+      });
+
+      expect(res.status).toBe(404);
+      const data = await res.json();
+      expect(data.error).toBe("Suscripción no encontrado");
+    });
   });
 
   describe("PATCH /api/subscriptions/:id/toggle", () => {
@@ -742,7 +778,7 @@ describe("Error Handling", () => {
 
   it("debe retornar 404 para ruta no existente", async () => {
     const res = await fetch(`${baseURL}/api/nonexistent`);
-    expect([404, 200]).toContain(res.status); // Puede ser 404 o redirigir (configuración)
+    expect(res.status).toBe(404);
   });
 });
 

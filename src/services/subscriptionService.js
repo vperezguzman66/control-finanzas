@@ -1,5 +1,6 @@
 import SubscriptionRepository from "../repositories/subscriptionRepository.js";
 import { billingMonths, addMonths } from "../utils/helpers.js";
+import { AppErrors } from "../utils/errors.js";
 
 /**
  * Servicio con lógica de negocio para suscripciones
@@ -26,7 +27,7 @@ export class SubscriptionService {
     // Verificar que existe
     const existing = await SubscriptionRepository.getById(id);
     if (!existing) {
-      throw new Error("Suscripción no encontrada");
+      throw AppErrors.notFound("Suscripción");
     }
 
     return SubscriptionRepository.update(id, subscriptionData);
@@ -38,7 +39,7 @@ export class SubscriptionService {
   static async toggleSubscriptionStatus(id) {
     const subscription = await SubscriptionRepository.getById(id);
     if (!subscription) {
-      throw new Error("Suscripción no encontrada");
+      throw AppErrors.notFound("Suscripción");
     }
 
     const nextStatus = subscription.status === "active" ? "paused" : "active";

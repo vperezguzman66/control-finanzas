@@ -9,7 +9,7 @@ import {
   updateSubscriptionSchema,
 } from "../schemas/subscription.schema.js";
 import { monthSchema } from "../schemas/shared.schema.js";
-import { AppError } from "../utils/errors.js";
+import { formatZodError } from "../utils/validation.js";
 
 /**
  * Middleware genérico para validar body con un schema Zod
@@ -23,22 +23,7 @@ function validateBody(schema) {
     } catch (error) {
       // Manejo de ZodError usando instanceof y flatten()
       if (error instanceof z.ZodError) {
-        const flattened = error.flatten();
-        const details = [];
-        
-        // Procesar errores de campos
-        Object.entries(flattened.fieldErrors || {}).forEach(([field, messages]) => {
-          if (Array.isArray(messages)) {
-            messages.forEach((message) => {
-              details.push({ field, message });
-            });
-          }
-        });
-        
-        return res.status(400).json({
-          error: "Validación fallida",
-          details: details.length > 0 ? details : [{ field: "root", message: error.message }],
-        });
+        return res.status(400).json(formatZodError(error, "Validación fallida"));
       }
       // Si no es error de validación, pasar al siguiente middleware
       return next(error);
@@ -58,22 +43,7 @@ function validateQuery(schema) {
     } catch (error) {
       // Manejo de ZodError usando instanceof y flatten()
       if (error instanceof z.ZodError) {
-        const flattened = error.flatten();
-        const details = [];
-        
-        // Procesar errores de campos
-        Object.entries(flattened.fieldErrors || {}).forEach(([field, messages]) => {
-          if (Array.isArray(messages)) {
-            messages.forEach((message) => {
-              details.push({ field, message });
-            });
-          }
-        });
-        
-        return res.status(400).json({
-          error: "Validación de parámetros fallida",
-          details: details.length > 0 ? details : [{ field: "root", message: error.message }],
-        });
+        return res.status(400).json(formatZodError(error, "Validación de parámetros fallida"));
       }
       // Si no es error de validación, pasar al siguiente middleware
       return next(error);

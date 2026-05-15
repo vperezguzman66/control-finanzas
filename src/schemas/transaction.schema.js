@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { amountSchema, dateSchema, nonEmptyStringSchema, optionalStringSchema, shortStringSchema } from "./shared.schema.js";
+import {
+  amountSchema,
+  dateSchema,
+  monthSchema,
+  nonEmptyStringSchema,
+  optionalStringSchema,
+  shortStringSchema,
+} from "./shared.schema.js";
 
 /**
  * Schema para crear/actualizar transacciones
@@ -38,7 +45,7 @@ const updateTransactionSchema = createTransactionSchema;
  * Schema para parámetros de query
  */
 const transactionQuerySchema = z.object({
-  month: z.string().optional(),
+  month: monthSchema,
 });
 
 export {

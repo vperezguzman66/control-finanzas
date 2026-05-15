@@ -117,11 +117,21 @@ function hasStoredCredentials() {
   return Boolean(getStoredCredentials());
 }
 
+function encodeBase64Utf8(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
 function getAuthHeader() {
   const credentials = getStoredCredentials();
   if (!credentials) return null;
 
-  return `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`;
+  const token = encodeBase64Utf8(`${credentials.username}:${credentials.password}`);
+  return `Basic ${token}`;
 }
 
 function setPasswordVisibility(visible) {
@@ -302,9 +312,16 @@ async function api(path, options = {}) {
       clearStoredCredentials();
       syncAuthUi();
       showAuthError(payload.error || "Credenciales inválidas");
-      throw new Error(payload.error || "Autenticación requerida");
+      const authError = new Error(payload.error || "Autenticación requerida");
+      authError.status = response.status;
+      throw authError;
     }
-    throw new Error(getApiErrorMessage(payload, "No se pudo completar la operación"));
+
+    const requestError = new Error(
+      getApiErrorMessage(payload, "No se pudo completar la operación")
+    );
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return response.json();
@@ -842,10 +859,15 @@ refs.authForm.addEventListener("submit", async (event) => {
     await refreshAll();
     notifySuccess("Acceso concedido", `Bienvenido, ${username}`);
   } catch (error) {
-    clearStoredCredentials();
-    syncAuthUi();
-    clearAppData();
-    showAuthError(error.message);
+    if (error?.status === 401) {
+      clearStoredCredentials();
+      syncAuthUi();
+      clearAppData();
+      showAuthError(error.message);
+      return;
+    }
+
+    notifyError(error, "No se pudieron cargar los datos luego del login");
   }
 });
 

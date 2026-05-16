@@ -29,13 +29,21 @@ export class TransactionService {
       throw AppErrors.notFound("Movimiento");
     }
 
-    return TransactionRepository.update(id, transactionData);
+    return TransactionRepository.update(id, {
+      ...existing,
+      ...transactionData,
+    });
   }
 
   /**
    * Elimina una transacción
    */
   static async deleteTransaction(id) {
+    const existing = await TransactionRepository.getById(id);
+    if (!existing) {
+      throw AppErrors.notFound("Movimiento");
+    }
+
     return TransactionRepository.delete(id);
   }
 

@@ -30,7 +30,10 @@ export class SubscriptionService {
       throw AppErrors.notFound("Suscripción");
     }
 
-    return SubscriptionRepository.update(id, subscriptionData);
+    return SubscriptionRepository.update(id, {
+      ...existing,
+      ...subscriptionData,
+    });
   }
 
   /**
@@ -46,10 +49,10 @@ export class SubscriptionService {
     const nextChargeDate =
       nextStatus === "active"
         ? addMonths(
-            subscription.next_charge_date,
-            billingMonths(subscription.billing_cycle)
+            subscription.nextChargeDate,
+            billingMonths(subscription.billingCycle)
           )
-        : subscription.next_charge_date;
+        : subscription.nextChargeDate;
 
     await SubscriptionRepository.updateStatus(id, nextStatus, nextChargeDate);
 
@@ -60,6 +63,11 @@ export class SubscriptionService {
    * Elimina una suscripción
    */
   static async deleteSubscription(id) {
+    const existing = await SubscriptionRepository.getById(id);
+    if (!existing) {
+      throw AppErrors.notFound("Suscripción");
+    }
+
     return SubscriptionRepository.delete(id);
   }
 

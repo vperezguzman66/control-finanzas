@@ -18,15 +18,23 @@ const createSubscriptionSchema = z.object({
 });
 
 /**
- * Schema para actualizar suscripciones (igual al create por ahora)
+ * Schema para actualizar suscripciones (PATCH parcial)
  */
-const updateSubscriptionSchema = createSubscriptionSchema.partial().required({
-  name: true,
-  amount: true,
-  category: true,
-  billingCycle: true,
-  nextChargeDate: true,
-});
+const updateSubscriptionSchema = z.object({
+  name: nonEmptyStringSchema.max(120, { message: "El nombre es demasiado largo" }).optional(),
+  amount: amountSchema.optional(),
+  category: shortStringSchema.optional(),
+  billingCycle: z.enum(["monthly", "quarterly", "annual"], {
+    errorMap: () => ({ message: "El ciclo debe ser 'monthly', 'quarterly' o 'annual'" }),
+  }).optional(),
+  nextChargeDate: dateSchema.optional(),
+  status: z.enum(["active", "paused"]).optional(),
+  paymentMethod: z.string().trim().max(255, { message: "Este campo es demasiado largo" }).optional(),
+  notes: z.string().trim().max(220, { message: "Las notas son demasiado largas" }).optional(),
+})
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Debes enviar al menos un campo a actualizar",
+  });
 
 export {
   createSubscriptionSchema,

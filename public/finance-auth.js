@@ -31,6 +31,12 @@ export function getStoredAuthModeLabel(mode) {
   return mode === "pin" ? "PIN" : "contraseña";
 }
 
+function normalizeSessionUsername(username) {
+  if (typeof username !== "string") return "usuario";
+  const normalized = username.trim();
+  return normalized || "usuario";
+}
+
 export function getStoredCredentials() {
   return runtimeCredentials;
 }
@@ -108,7 +114,7 @@ export function syncAuthUi() {
   refs.authOverlay.inert = authenticated;
   refs.logoutBtn.classList.toggle("hidden", !authenticated);
   refs.sessionStatus.textContent = authenticated
-    ? `Sesión activa como ${credentials.username} (${getStoredAuthModeLabel(credentials.mode)})`
+    ? `Sesión activa como ${normalizeSessionUsername(credentials.username)} (${getStoredAuthModeLabel(credentials.mode)})`
     : "Inicia sesión para cargar tus datos.";
   refs.authUser.value = authenticated ? refs.authUser.value : rememberedUsername;
   refs.rememberUser.checked = Boolean(rememberedUsername);

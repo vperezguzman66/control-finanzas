@@ -48,6 +48,19 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+button.is-loading,
+input.is-loading,
+select.is-loading,
+textarea.is-loading {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
 button.secondary {
   background: #64748b;
 }

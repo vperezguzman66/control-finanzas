@@ -14,7 +14,11 @@ export async function renderTrendChart() {
   const ctx = refs.trendCanvas.getContext("2d");
 
   if (trendChartInstance) {
-    trendChartInstance.destroy();
+    trendChartInstance.data.labels = data.labels;
+    trendChartInstance.data.datasets[0].data = data.income;
+    trendChartInstance.data.datasets[1].data = data.expenses;
+    trendChartInstance.update();
+    return;
   }
 
   trendChartInstance = new Chart(ctx, {
@@ -70,11 +74,12 @@ export async function renderExpenseChart() {
   const data = await api(`/api/chart/expense-breakdown?month=${encodeURIComponent(state.month)}`);
   const ctx = refs.expenseCanvas.getContext("2d");
 
-  if (expenseChartInstance) {
-    expenseChartInstance.destroy();
-  }
-
   if (data.labels.length === 0) {
+    if (expenseChartInstance) {
+      expenseChartInstance.destroy();
+      expenseChartInstance = null;
+    }
+
     ctx.clearRect(0, 0, refs.expenseCanvas.width, refs.expenseCanvas.height);
     ctx.fillStyle = "#6b7280";
     ctx.font = "14px sans-serif";
@@ -97,6 +102,14 @@ export async function renderExpenseChart() {
     "#7c2d12",
     "#831843",
   ];
+
+  if (expenseChartInstance) {
+    expenseChartInstance.data.labels = data.labels;
+    expenseChartInstance.data.datasets[0].data = data.values;
+    expenseChartInstance.data.datasets[0].backgroundColor = colors.slice(0, data.labels.length);
+    expenseChartInstance.update();
+    return;
+  }
 
   expenseChartInstance = new Chart(ctx, {
     type: "doughnut",

@@ -33,8 +33,20 @@ export function transactionCard(item) {
       </div>
       ${notes}
       <div class="card-actions">
-        <button type="button" class="secondary" data-action="edit-transaction" data-id="${item.id}">Editar</button>
-        <button type="button" class="danger" data-action="delete-transaction" data-id="${item.id}">Eliminar</button>
+        <button
+          type="button"
+          class="secondary"
+          data-action="edit-transaction"
+          data-id="${item.id}"
+          aria-label="Editar movimiento ${description} (${category})"
+        >Editar</button>
+        <button
+          type="button"
+          class="danger"
+          data-action="delete-transaction"
+          data-id="${item.id}"
+          aria-label="Eliminar movimiento ${description} (${category})"
+        >Eliminar</button>
       </div>
     </article>
   `;

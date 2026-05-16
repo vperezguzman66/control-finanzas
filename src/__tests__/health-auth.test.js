@@ -41,4 +41,46 @@ describe("Basic Auth", () => {
     const data = await res.json();
     expect(Array.isArray(data.subscriptions)).toBe(true);
   });
+
+  it("debe rechazar PIN incorrecto", async () => {
+    const badPinHeader = `Basic ${Buffer.from("admin:9999").toString("base64")}`;
+    const res = await rawFetch("/api/subscriptions", {
+      headers: {
+        Authorization: badPinHeader,
+      },
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
+    const data = await res.json();
+    expect(data).toEqual({ error: "Autenticación requerida" });
+  });
+
+  it("debe rechazar PIN vacío", async () => {
+    const emptyPinHeader = `Basic ${Buffer.from("admin:").toString("base64")}`;
+    const res = await rawFetch("/api/subscriptions", {
+      headers: {
+        Authorization: emptyPinHeader,
+      },
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
+    const data = await res.json();
+    expect(data).toEqual({ error: "Autenticación requerida" });
+  });
+
+  it("debe rechazar usuario incorrecto aunque el PIN sea válido", async () => {
+    const wrongUserHeader = `Basic ${Buffer.from("otro-usuario:1234").toString("base64")}`;
+    const res = await rawFetch("/api/subscriptions", {
+      headers: {
+        Authorization: wrongUserHeader,
+      },
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
+    const data = await res.json();
+    expect(data).toEqual({ error: "Autenticación requerida" });
+  });
 });

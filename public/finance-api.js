@@ -6,6 +6,76 @@ import {
 } from "./finance-auth.js";
 import { getApiErrorMessage } from "./finance-utils.js";
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+
+function createRequestController(timeoutMs, externalSignal) {
+  const controller = new AbortController();
+  let timeoutId = null;
+  let timedOut = false;
+
+  if (externalSignal?.aborted) {
+    controller.abort();
+    return {
+      signal: controller.signal,
+      timedOut: () => timedOut,
+      cleanup: () => {},
+    };
+  }
+
+  const onAbort = () => {
+    controller.abort();
+  };
+
+  if (externalSignal) {
+    externalSignal.addEventListener("abort", onAbort, { once: true });
+  }
+
+  if (timeoutMs > 0) {
+    timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+  }
+
+  return {
+    signal: controller.signal,
+    timedOut: () => timedOut,
+    cleanup: () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      if (externalSignal) {
+        externalSignal.removeEventListener("abort", onAbort);
+      }
+    },
+  };
+}
+
+async function fetchWithTimeout(path, options = {}, timeoutMessage) {
+  const timeoutMs = Number(options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+  const requestOptions = { ...options };
+  delete requestOptions.timeoutMs;
+
+  const requestController = createRequestController(timeoutMs, requestOptions.signal);
+
+  try {
+    return await fetch(path, {
+      ...requestOptions,
+      signal: requestController.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError" && requestController.timedOut()) {
+      const timeoutError = new Error(timeoutMessage);
+      timeoutError.code = "REQUEST_TIMEOUT";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    requestController.cleanup();
+  }
+}
+
 export async function api(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const authHeader = getAuthHeader();
@@ -14,11 +84,11 @@ export async function api(path, options = {}) {
   }
   headers.set("Content-Type", "application/json");
 
-  const response = await fetch(path, {
+  const response = await fetchWithTimeout(path, {
     ...options,
     cache: "no-store",
     headers: Object.fromEntries(headers.entries()),
-  });
+  }, "La solicitud tardó demasiado. Intenta nuevamente.");
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -48,10 +118,10 @@ export async function downloadCsv(path, filename) {
     headers.set("Authorization", authHeader);
   }
 
-  const response = await fetch(path, {
+  const response = await fetchWithTimeout(path, {
     headers,
     cache: "no-store",
-  });
+  }, "La exportación tardó demasiado. Intenta nuevamente.");
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));

@@ -97,6 +97,16 @@ class Database {
     `);
 
     await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_month
+      ON transactions(substr(date, 1, 7))
+    `);
+
+    await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_date_id
+      ON transactions(date DESC, id DESC)
+    `);
+
+    await Database.run(`
       CREATE INDEX IF NOT EXISTS idx_transactions_category
       ON transactions(category)
     `);

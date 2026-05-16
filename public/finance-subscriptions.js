@@ -33,9 +33,27 @@ export function subscriptionCard(item) {
       </div>
       ${notes}
       <div class="card-actions">
-        <button type="button" class="secondary" data-action="toggle-subscription" data-id="${item.id}">${active ? "Pausar" : "Reactivar"}</button>
-        <button type="button" class="secondary" data-action="edit-subscription" data-id="${item.id}">Editar</button>
-        <button type="button" class="danger" data-action="delete-subscription" data-id="${item.id}">Eliminar</button>
+        <button
+          type="button"
+          class="secondary"
+          data-action="toggle-subscription"
+          data-id="${item.id}"
+          aria-label="${active ? "Pausar" : "Reactivar"} suscripción ${name} (${category})"
+        >${active ? "Pausar" : "Reactivar"}</button>
+        <button
+          type="button"
+          class="secondary"
+          data-action="edit-subscription"
+          data-id="${item.id}"
+          aria-label="Editar suscripción ${name} (${category})"
+        >Editar</button>
+        <button
+          type="button"
+          class="danger"
+          data-action="delete-subscription"
+          data-id="${item.id}"
+          aria-label="Eliminar suscripción ${name} (${category})"
+        >Eliminar</button>
       </div>
     </article>
   `;

@@ -61,6 +61,13 @@ class Database {
    * Inicializa las tablas de la base de datos
    */
   static async initializeTables() {
+    // WAL: lecturas concurrentes sin bloquear escrituras
+    await Database.get("PRAGMA journal_mode = WAL");
+    // Activar verificación de claves foráneas (desactivada por defecto en SQLite)
+    await Database.run("PRAGMA foreign_keys = ON");
+    // Con WAL, NORMAL ofrece buen balance entre rendimiento e integridad
+    await Database.run("PRAGMA synchronous = NORMAL");
+
     await Database.run(`
       CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import { escapeHtml } from "../../public/finance-sanitize.js";
 
 describe("escapeHtml", () => {

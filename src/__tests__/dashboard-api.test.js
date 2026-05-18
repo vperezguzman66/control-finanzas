@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import { setupApiTestServer } from "./helpers/apiTestServer.js";
 
 const { apiFetch } = setupApiTestServer();

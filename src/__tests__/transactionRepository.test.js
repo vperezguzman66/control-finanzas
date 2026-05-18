@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import TransactionRepository from "../repositories/transactionRepository.js";
 
 describe("TransactionRepository CSV export", () => {

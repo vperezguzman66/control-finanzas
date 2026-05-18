@@ -3,5 +3,6 @@ export default {
     environment: "node",
     include: ["src/__tests__/**/*.test.js"],
     globals: true,
+    fileParallelism: false,
   },
 };

@@ -1,10 +1,9 @@
-import { spawn } from "child_process";
-import { beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm } from "fs/promises";
-import net from "net";
-import os from "os";
-import path from "path";
-import { fileURLToPath } from "url";
+import { spawn } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import net from "node:net";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..", "..", "..");
@@ -26,6 +25,8 @@ export function setupApiTestServer() {
   let testDbDir;
   let testDbPath;
   let baseURL;
+  let startPromise;
+  let cleanupPromise;
 
   async function getAvailablePort() {
     return new Promise((resolve, reject) => {
@@ -68,52 +69,129 @@ export function setupApiTestServer() {
     throw new Error("Servidor no respondió después de 3 segundos");
   }
 
-  beforeAll(async () => {
-    testDbDir = await mkdtemp(path.join(os.tmpdir(), "control-finanzas-test-"));
-    testDbPath = path.join(testDbDir, "finance.db");
-    const port = await getAvailablePort();
-    baseURL = `http://127.0.0.1:${port}`;
+  async function ensureServerStarted() {
+    if (baseURL) return;
+    if (startPromise) {
+      await startPromise;
+      return;
+    }
 
-    await new Promise((resolve, reject) => {
-      serverProcess = spawn("node", ["finance-server.js"], {
-        cwd: projectRoot,
-        stdio: "pipe",
-        env: {
-          ...process.env,
-          ALLOWED_ORIGINS: "http://allowed.local",
-          BASIC_AUTH_USER: "admin",
-          BASIC_AUTH_PASSWORD: "change-me",
-          BASIC_AUTH_PIN: "1234",
-          DATABASE_PATH: testDbPath,
-          PORT: String(port),
-        },
+    startPromise = (async () => {
+      testDbDir = await mkdtemp(path.join(os.tmpdir(), "control-finanzas-test-"));
+      testDbPath = path.join(testDbDir, "finance.db");
+      const port = await getAvailablePort();
+      baseURL = `http://127.0.0.1:${port}`;
+
+      await new Promise((resolve, reject) => {
+        let settled = false;
+        let stderrOutput = "";
+
+        const settle = (callback) => (value) => {
+          if (settled) return;
+          settled = true;
+          callback(value);
+        };
+
+        const finishOk = settle(resolve);
+        const finishError = settle(reject);
+
+        try {
+          serverProcess = spawn(process.execPath, ["finance-server.js"], {
+            cwd: projectRoot,
+            stdio: "pipe",
+            env: {
+              ...process.env,
+              ALLOWED_ORIGINS: "http://allowed.local",
+              BASIC_AUTH_USER: "admin",
+              BASIC_AUTH_PASSWORD: "change-me",
+              BASIC_AUTH_PIN: "1234",
+              DATABASE_PATH: testDbPath,
+              PORT: String(port),
+            },
+          });
+        } catch (error) {
+          finishError(new Error(`No se pudo iniciar el proceso del servidor de pruebas: ${error.message}`));
+          return;
+        }
+
+        if (!serverProcess || typeof serverProcess.on !== "function") {
+          finishError(new Error("No se pudo iniciar el proceso del servidor de pruebas"));
+          return;
+        }
+
+        serverProcess.stderr?.on("data", (chunk) => {
+          stderrOutput += chunk.toString();
+        });
+
+        serverProcess.once("error", (error) => {
+          finishError(new Error(`Error al iniciar el servidor de pruebas: ${error.message}`));
+        });
+
+        waitForServer()
+          .then(() => finishOk())
+          .catch((error) => {
+            const stderrInfo = stderrOutput.trim()
+              ? `\nSalida de error del servidor:\n${stderrOutput.trim()}`
+              : "";
+            finishError(new Error(`${error.message}${stderrInfo}`));
+          });
       });
-
-      serverProcess.on("error", reject);
-      waitForServer().then(resolve).catch(reject);
+    })().catch((error) => {
+      startPromise = undefined;
+      throw error;
     });
-  });
 
-  afterAll(async () => {
-    if (serverProcess) {
-      await new Promise((resolve) => {
-        serverProcess.kill();
-        serverProcess.on("exit", resolve);
-      });
+    await startPromise;
+  }
+
+  async function cleanup() {
+    if (cleanupPromise) {
+      await cleanupPromise;
+      return;
     }
 
-    if (testDbDir) {
-      await rm(testDbDir, { recursive: true, force: true });
-    }
+    cleanupPromise = (async () => {
+      if (serverProcess && serverProcess.exitCode === null && !serverProcess.killed) {
+        await new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 1500);
+          serverProcess.on("exit", () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+          serverProcess.kill();
+        });
+      }
+
+      if (testDbDir) {
+        await rm(testDbDir, { recursive: true, force: true });
+      }
+    })();
+
+    await cleanupPromise;
+  }
+
+  process.once("exit", () => {
+    void cleanup();
   });
 
   return {
-    url: (relativePath) => `${baseURL}${relativePath}`,
-    apiFetch: (relativePath, init = {}) =>
-      withAuth(rawFetch, defaultAuthHeader, `${baseURL}${relativePath}`, init),
-    pinFetch: (relativePath, init = {}) =>
-      withAuth(rawFetch, pinAuthHeader, `${baseURL}${relativePath}`, init),
-    rawFetch: (relativePath, init = {}) => rawFetch(`${baseURL}${relativePath}`, init),
+    url: async (relativePath) => {
+      await ensureServerStarted();
+      return `${baseURL}${relativePath}`;
+    },
+    apiFetch: async (relativePath, init = {}) => {
+      await ensureServerStarted();
+      return withAuth(rawFetch, defaultAuthHeader, `${baseURL}${relativePath}`, init);
+    },
+    pinFetch: async (relativePath, init = {}) => {
+      await ensureServerStarted();
+      return withAuth(rawFetch, pinAuthHeader, `${baseURL}${relativePath}`, init);
+    },
+    rawFetch: async (relativePath, init = {}) => {
+      await ensureServerStarted();
+      return rawFetch(`${baseURL}${relativePath}`, init);
+    },
     getTestDbPath: () => testDbPath,
+    shutdown: cleanup,
   };
 }

@@ -1,9 +1,19 @@
+import fs from "fs";
 import sqlite3Module from "sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, "..", "finance.db");
+const projectRoot = path.join(__dirname, "..");
+const configuredDbPath = process.env.DATABASE_PATH;
+const dbPath = configuredDbPath
+  ? path.isAbsolute(configuredDbPath)
+    ? configuredDbPath
+    : path.join(projectRoot, configuredDbPath)
+  : path.join(projectRoot, "finance.db");
+
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
 const sqlite3 = sqlite3Module.verbose();
 const db = new sqlite3.Database(dbPath);
 
@@ -87,6 +97,16 @@ class Database {
     `);
 
     await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_month
+      ON transactions(substr(date, 1, 7))
+    `);
+
+    await Database.run(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_date_id
+      ON transactions(date DESC, id DESC)
+    `);
+
+    await Database.run(`
       CREATE INDEX IF NOT EXISTS idx_transactions_category
       ON transactions(category)
     `);
@@ -104,7 +124,6 @@ class Database {
     const row = await Database.get("SELECT 1 AS ok");
     return {
       ok: row?.ok === 1,
-      dbPath,
     };
   }
 }

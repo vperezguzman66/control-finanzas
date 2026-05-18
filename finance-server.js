@@ -48,7 +48,7 @@ app.use(
         scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         baseUri: ["'self'"],
@@ -76,6 +76,13 @@ if (allowedOrigins.length > 0) {
 
 app.use(compression());
 app.use(express.json({ limit: "100kb" }));
+
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 
 const basicAuthMiddleware = createBasicAuthMiddleware({
   username: process.env.BASIC_AUTH_USER,
@@ -116,6 +123,10 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chart", chartRoutes);
+
+app.use("/api", (_req, res) => {
+  return res.status(404).json({ error: "Ruta no encontrada" });
+});
 
 // Servir aplicación frontend
 app.get("/", (_req, res) => {

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+function getCurrentMonthValue() {
+  return new Date().toISOString().slice(0, 7);
+}
+
 /**
  * Validadores compartidos para campos comunes
  */
@@ -30,19 +34,20 @@ const dateSchema = z
   });
 
 // Parseo y validación de mes (YYYY-MM)
-const monthSchema = z
-  .string()
-  .optional()
-  .transform((val) => {
-    if (!val || typeof val !== "string") {
-      return new Date().toISOString().slice(0, 7);
-    }
-    const trimmed = val.trim();
-    if (!/^\d{4}-\d{2}$/.test(trimmed)) {
-      return new Date().toISOString().slice(0, 7);
-    }
-    return trimmed;
-  });
+const monthSchema = z.preprocess((val) => {
+  if (val === undefined || val === null) {
+    return getCurrentMonthValue();
+  }
+
+  if (typeof val !== "string") {
+    return val;
+  }
+
+  const trimmed = val.trim();
+  return trimmed === "" ? getCurrentMonthValue() : trimmed;
+}, z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, {
+  message: "El mes debe estar en formato YYYY-MM",
+}));
 
 // Parseo y validación de string no vacío
 const nonEmptyStringSchema = z

@@ -117,7 +117,24 @@ export class SubscriptionRepository {
    * Obtiene una suscripción por ID
    */
   static async getById(id) {
-    return get("SELECT * FROM subscriptions WHERE id = ?", [id]);
+    return get(
+      `
+        SELECT
+          id,
+          name,
+          category,
+          amount,
+          billing_cycle AS billingCycle,
+          next_charge_date AS nextChargeDate,
+          status,
+          payment_method AS paymentMethod,
+          notes,
+          created_at AS createdAt
+        FROM subscriptions
+        WHERE id = ?
+      `,
+      [id]
+    );
   }
 
   /**

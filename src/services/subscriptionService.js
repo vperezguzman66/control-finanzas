@@ -1,5 +1,6 @@
 import SubscriptionRepository from "../repositories/subscriptionRepository.js";
 import { billingMonths, addMonths } from "../utils/helpers.js";
+import { AppErrors } from "../utils/errors.js";
 
 /**
  * Servicio con lógica de negocio para suscripciones
@@ -26,10 +27,13 @@ export class SubscriptionService {
     // Verificar que existe
     const existing = await SubscriptionRepository.getById(id);
     if (!existing) {
-      throw new Error("Suscripción no encontrada");
+      throw AppErrors.notFound("Suscripción");
     }
 
-    return SubscriptionRepository.update(id, subscriptionData);
+    return SubscriptionRepository.update(id, {
+      ...existing,
+      ...subscriptionData,
+    });
   }
 
   /**
@@ -38,17 +42,17 @@ export class SubscriptionService {
   static async toggleSubscriptionStatus(id) {
     const subscription = await SubscriptionRepository.getById(id);
     if (!subscription) {
-      throw new Error("Suscripción no encontrada");
+      throw AppErrors.notFound("Suscripción");
     }
 
     const nextStatus = subscription.status === "active" ? "paused" : "active";
     const nextChargeDate =
       nextStatus === "active"
         ? addMonths(
-            subscription.next_charge_date,
-            billingMonths(subscription.billing_cycle)
+            subscription.nextChargeDate,
+            billingMonths(subscription.billingCycle)
           )
-        : subscription.next_charge_date;
+        : subscription.nextChargeDate;
 
     await SubscriptionRepository.updateStatus(id, nextStatus, nextChargeDate);
 
@@ -59,6 +63,11 @@ export class SubscriptionService {
    * Elimina una suscripción
    */
   static async deleteSubscription(id) {
+    const existing = await SubscriptionRepository.getById(id);
+    if (!existing) {
+      throw AppErrors.notFound("Suscripción");
+    }
+
     return SubscriptionRepository.delete(id);
   }
 

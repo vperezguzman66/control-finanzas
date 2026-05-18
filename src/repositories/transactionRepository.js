@@ -4,9 +4,15 @@ import { run, all, get } from "../database.js";
  * Repositorio para operaciones CRUD de transacciones
  */
 export class TransactionRepository {
+  static protectCsvFormulaInjection(value) {
+    if (typeof value !== "string") return value;
+
+    return /^[\t\r\n ]*[=+\-@]/.test(value) ? `'${value}` : value;
+  }
+
   static escapeCsvValue(value) {
     if (value === null || value === undefined) return "";
-    const text = String(value);
+    const text = String(TransactionRepository.protectCsvFormulaInjection(value));
     if (/[,"\n\r]/.test(text)) {
       return `"${text.replaceAll('"', '""')}"`;
     }
@@ -118,7 +124,24 @@ export class TransactionRepository {
    * Obtiene una transacción por ID
    */
   static async getById(id) {
-    return get("SELECT id FROM transactions WHERE id = ?", [id]);
+    return get(
+      `
+        SELECT
+          id,
+          kind,
+          category,
+          description,
+          amount,
+          date,
+          payment_method AS paymentMethod,
+          notes,
+          recurring,
+          created_at AS createdAt
+        FROM transactions
+        WHERE id = ?
+      `,
+      [id]
+    );
   }
 
   /**

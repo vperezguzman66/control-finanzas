@@ -1,4 +1,5 @@
 import TransactionRepository from "../repositories/transactionRepository.js";
+import { AppErrors } from "../utils/errors.js";
 
 /**
  * Servicio con lógica de negocio para transacciones
@@ -25,16 +26,24 @@ export class TransactionService {
     // Verificar que existe
     const existing = await TransactionRepository.getById(id);
     if (!existing) {
-      throw new Error("Movimiento no encontrado");
+      throw AppErrors.notFound("Movimiento");
     }
 
-    return TransactionRepository.update(id, transactionData);
+    return TransactionRepository.update(id, {
+      ...existing,
+      ...transactionData,
+    });
   }
 
   /**
    * Elimina una transacción
    */
   static async deleteTransaction(id) {
+    const existing = await TransactionRepository.getById(id);
+    if (!existing) {
+      throw AppErrors.notFound("Movimiento");
+    }
+
     return TransactionRepository.delete(id);
   }
 

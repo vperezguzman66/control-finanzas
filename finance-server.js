@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
+import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
@@ -75,6 +76,7 @@ if (allowedOrigins.length > 0) {
 }
 
 app.use(compression());
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "100kb" }));
 
 app.use("/api", (_req, res, next) => {

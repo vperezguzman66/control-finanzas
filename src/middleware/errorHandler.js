@@ -32,7 +32,11 @@ function errorHandler(error, req, res, next) {
     });
   }
 
-  // Error por defecto - Error interno
+  // Error inesperado — registrar para diagnóstico sin exponer detalles al cliente
+  console.error(
+    `[ERROR] ${req.method} ${req.path} —`,
+    error?.stack ?? error
+  );
   return res.status(500).json({
     error: "Error interno del servidor",
   });

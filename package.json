@@ -8,7 +8,7 @@
     "start": "node finance-server.js",
     "test": "vitest run --maxWorkers=1",
     "test:ci": "vitest run --maxWorkers=1",
-    "test:unit": "vitest run src/__tests__/escapeHtml.test.js src/__tests__/helpers.test.js src/__tests__/transactionRepository.test.js",
+    "test:unit": "vitest run src/__tests__/escapeHtml.test.js src/__tests__/helpers.test.js src/__tests__/transactionRepository.test.js src/__tests__/transactionService.test.js src/__tests__/subscriptionService.test.js",
     "test:integration": "vitest run --maxWorkers=1 src/__tests__/*-api.test.js src/__tests__/health-auth.test.js",
     "test:watch": "vitest",
     "test:ui": "vitest --ui"

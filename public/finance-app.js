@@ -129,7 +129,16 @@ function getAuthHeader() {
   const credentials = getStoredCredentials();
   if (!credentials) return null;
 
-  return `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`;
+  return `Basic ${toBase64Utf8(`${credentials.username}:${credentials.password}`)}`;
+}
+
+function toBase64Utf8(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
 }
 
 function setPasswordVisibility(visible) {
@@ -817,7 +826,11 @@ refs.authForm.addEventListener("submit", async (event) => {
 
   const username = refs.authUser.value.trim();
   const remember = refs.rememberUser.checked;
-  const secret = state.authMode === "pin" ? refs.authPin.value.trim() : refs.authPassword.value;
+  const passwordInput = refs.authPassword.value;
+  const pinInput = refs.authPin.value.trim();
+  const secret = state.authMode === "pin"
+    ? (pinInput || passwordInput)
+    : (passwordInput || pinInput);
 
   if (!username || !secret) {
     showAuthError(state.authMode === "pin" ? "Ingresa usuario y PIN." : "Ingresa usuario y contraseña.");
@@ -835,7 +848,10 @@ refs.authForm.addEventListener("submit", async (event) => {
     clearStoredCredentials();
     syncAuthUi();
     clearAppData();
-    showAuthError(error.message);
+    const suggestion = state.authMode === "pin"
+      ? "Si estás usando contraseña, cambia a modo Contraseña."
+      : "Si estás usando PIN, cambia a modo PIN.";
+    showAuthError(`${error.message}. ${suggestion}`);
   }
 });
 

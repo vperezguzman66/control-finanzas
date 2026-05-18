@@ -1,4 +1,5 @@
 import TransactionRepository from "../repositories/transactionRepository.js";
+import SubscriptionRepository from "../repositories/subscriptionRepository.js";
 import { AppErrors } from "../utils/errors.js";
 
 /**
@@ -73,12 +74,10 @@ export class TransactionService {
   }
 
   /**
-   * Obtiene estadísticas de suscripciones (importado de SubscriptionService)
+   * Obtiene estadísticas de suscripciones
    */
   static async getSubscriptionStats() {
-    // Importar aquí para evitar circular dependency
-    const SubscriptionService = (await import("./subscriptionService.js")).default;
-    return SubscriptionService.getStats();
+    return SubscriptionRepository.getStats();
   }
 
   /**

@@ -55,3 +55,17 @@ export function getCurrentDate() {
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Elimina todas las claves con valor undefined de un objeto.
+ * Usado para evitar que undefined sobrescriba valores en actualizaciones parciales.
+ * 
+ * Ejemplo:
+ *   removeUndefinedKeys({ a: 1, b: undefined, c: "test" })
+ *   // => { a: 1, c: "test" }
+ */
+export function removeUndefinedKeys(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined)
+  );
+}

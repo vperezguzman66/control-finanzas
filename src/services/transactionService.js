@@ -1,6 +1,7 @@
 import TransactionRepository from "../repositories/transactionRepository.js";
 import SubscriptionRepository from "../repositories/subscriptionRepository.js";
 import { AppErrors } from "../utils/errors.js";
+import { removeUndefinedKeys } from "../utils/helpers.js";
 
 /**
  * Servicio con lógica de negocio para transacciones
@@ -30,9 +31,12 @@ export class TransactionService {
       throw AppErrors.notFound("Movimiento");
     }
 
+    // Sanitizar datos para evitar que undefined sobrescriba campos existentes
+    const sanitizedData = removeUndefinedKeys(transactionData);
+
     return TransactionRepository.update(id, {
       ...existing,
-      ...transactionData,
+      ...sanitizedData,
     });
   }
 

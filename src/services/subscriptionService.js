@@ -1,5 +1,5 @@
 import SubscriptionRepository from "../repositories/subscriptionRepository.js";
-import { billingMonths, addMonths, getCurrentDate } from "../utils/helpers.js";
+import { billingMonths, addMonths, getCurrentDate, removeUndefinedKeys } from "../utils/helpers.js";
 import { AppErrors } from "../utils/errors.js";
 
 /**
@@ -30,9 +30,12 @@ export class SubscriptionService {
       throw AppErrors.notFound("Suscripción");
     }
 
+    // Sanitizar datos para evitar que undefined sobrescriba campos existentes
+    const sanitizedData = removeUndefinedKeys(subscriptionData);
+
     return SubscriptionRepository.update(id, {
       ...existing,
-      ...subscriptionData,
+      ...sanitizedData,
     });
   }
 

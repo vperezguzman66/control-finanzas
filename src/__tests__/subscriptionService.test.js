@@ -39,6 +39,36 @@ describe("SubscriptionService", () => {
         notes: "Solo notas",
       });
     });
+
+    it("no sobrescribe campos con undefined", async () => {
+      const existing = {
+        id: 11,
+        name: "Updated Sub",
+        amount: 10,
+        category: "Test",
+        billingCycle: "quarterly",
+        nextChargeDate: "2026-08-13",
+        notes: "Original notes",
+      };
+
+      SubscriptionRepository.getById.mockResolvedValue(existing);
+      SubscriptionRepository.update.mockResolvedValue(undefined);
+
+      await SubscriptionService.updateSubscription(11, {
+        name: "New name",
+        notes: undefined,
+        paymentMethod: undefined,
+      });
+
+      expect(SubscriptionRepository.update).toHaveBeenCalledTimes(1);
+      const callArgs = SubscriptionRepository.update.mock.calls[0][1];
+
+      // notes debe mantener su valor original, no undefined
+      expect(callArgs.notes).toBe("Original notes");
+      expect(callArgs.name).toBe("New name");
+      // paymentMethod no debe existir en el resultado si era undefined
+      expect(callArgs.paymentMethod).toBeUndefined();
+    });
   });
 
   describe("deleteSubscription", () => {

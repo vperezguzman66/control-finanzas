@@ -38,6 +38,35 @@ describe("TransactionService", () => {
         description: "Solo descripción",
       });
     });
+
+    it("no sobrescribe campos con undefined", async () => {
+      const existing = {
+        id: 7,
+        kind: "income",
+        amount: 1200,
+        category: "Bonus",
+        description: "Original description",
+        date: "2026-05-13",
+      };
+
+      TransactionRepository.getById.mockResolvedValue(existing);
+      TransactionRepository.update.mockResolvedValue(undefined);
+
+      await TransactionService.updateTransaction(7, {
+        description: "Nueva descripción",
+        category: undefined,
+        notes: undefined,
+      });
+
+      expect(TransactionRepository.update).toHaveBeenCalledTimes(1);
+      const callArgs = TransactionRepository.update.mock.calls[0][1];
+
+      // category debe mantener su valor original, no undefined
+      expect(callArgs.category).toBe("Bonus");
+      expect(callArgs.description).toBe("Nueva descripción");
+      // notes no debe existir en el resultado si era undefined
+      expect(callArgs.notes).toBeUndefined();
+    });
   });
 
   describe("deleteTransaction", () => {

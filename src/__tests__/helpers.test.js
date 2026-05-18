@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import { billingMonths, addMonths, getCurrentMonth } from "../utils/helpers.js";
 
 describe("helpers utils", () => {
@@ -20,6 +19,22 @@ describe("helpers utils", () => {
       expect(addMonths("2026-01-15", 1)).toBe("2026-02-15");
       expect(addMonths("2026-01-15", 3)).toBe("2026-04-15");
       expect(addMonths("2026-01-15", 12)).toBe("2027-01-15");
+    });
+
+    it("clampea al último día del mes destino cuando el día no existe", () => {
+      // 31 enero + 1 mes → 28 febrero (2026 no es bisiesto)
+      expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+      // 31 enero + 1 mes → 29 febrero (2028 es bisiesto)
+      expect(addMonths("2028-01-31", 1)).toBe("2028-02-29");
+      // 30 noviembre + 3 meses → 28 febrero (año no bisiesto)
+      expect(addMonths("2025-11-30", 3)).toBe("2026-02-28");
+      // 31 marzo + 1 mes → 30 abril (abril tiene 30 días)
+      expect(addMonths("2026-03-31", 1)).toBe("2026-04-30");
+    });
+
+    it("maneja cruce de año correctamente", () => {
+      expect(addMonths("2026-12-31", 1)).toBe("2027-01-31");
+      expect(addMonths("2026-11-30", 2)).toBe("2027-01-30");
     });
   });
 

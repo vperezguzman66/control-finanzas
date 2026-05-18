@@ -1,5 +1,5 @@
 import SubscriptionRepository from "../repositories/subscriptionRepository.js";
-import { billingMonths, addMonths } from "../utils/helpers.js";
+import { billingMonths, addMonths, getCurrentDate } from "../utils/helpers.js";
 import { AppErrors } from "../utils/errors.js";
 
 /**
@@ -46,13 +46,17 @@ export class SubscriptionService {
     }
 
     const nextStatus = subscription.status === "active" ? "paused" : "active";
-    const nextChargeDate =
-      nextStatus === "active"
-        ? addMonths(
-            subscription.nextChargeDate,
-            billingMonths(subscription.billingCycle)
-          )
-        : subscription.nextChargeDate;
+    let nextChargeDate = subscription.nextChargeDate;
+
+    if (nextStatus === "active") {
+      // Al reactivar, avanzar por ciclos de facturación hasta que la fecha
+      // quede estrictamente en el futuro (evita cobros retroactivos).
+      const cycleMonths = billingMonths(subscription.billingCycle);
+      const today = getCurrentDate();
+      while (nextChargeDate <= today) {
+        nextChargeDate = addMonths(nextChargeDate, cycleMonths);
+      }
+    }
 
     await SubscriptionRepository.updateStatus(id, nextStatus, nextChargeDate);
 

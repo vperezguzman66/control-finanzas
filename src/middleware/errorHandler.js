@@ -20,7 +20,7 @@ function errorHandler(error, req, res, next) {
   if (error && error.code === "SQLITE_CONSTRAINT") {
     return res.status(409).json({
       error: "Conflicto de datos",
-      details: error.message,
+      details: "El registro viola una restricción de integridad.",
     });
   }
 

@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeAll } from "vitest";
 import { setupApiTestServer } from "./helpers/apiTestServer.js";
 
 const { apiFetch } = setupApiTestServer();
@@ -243,6 +242,40 @@ describe("Suscripciones", () => {
       const data = await res.json();
       expect(data.ok).toBe(true);
       expect(["active", "paused"]).toContain(data.status);
+    });
+
+    it("debe calcular nextChargeDate en el futuro al reactivar desde fecha pasada", async () => {
+      // Crear suscripción con nextChargeDate en el pasado
+      await apiFetch("/api/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Sub Reactivación Pasado",
+          amount: 5,
+          category: "Test",
+          billingCycle: "monthly",
+          nextChargeDate: "2020-01-15",
+        }),
+      });
+      const listRes = await apiFetch("/api/subscriptions");
+      const listData = await listRes.json();
+      const sub = listData.subscriptions.find((s) => s.name === "Sub Reactivación Pasado");
+      expect(sub).toBeDefined();
+
+      // 1ª llamada: activa → pausada (la fecha no cambia)
+      const pauseRes = await apiFetch(`/api/subscriptions/${sub.id}/toggle`, { method: "PATCH" });
+      expect(pauseRes.status).toBe(200);
+      const pauseData = await pauseRes.json();
+      expect(pauseData.status).toBe("paused");
+
+      // 2ª llamada: pausada → activa (la fecha debe quedar en el futuro)
+      const activeRes = await apiFetch(`/api/subscriptions/${sub.id}/toggle`, { method: "PATCH" });
+      expect(activeRes.status).toBe(200);
+      const activeData = await activeRes.json();
+      expect(activeData.ok).toBe(true);
+      expect(activeData.status).toBe("active");
+      const today = new Date().toISOString().slice(0, 10);
+      expect(activeData.nextChargeDate > today).toBe(true);
     });
 
     it("debe rechazar ID inválido en toggle", async () => {
